@@ -138,6 +138,7 @@ export type Database = {
           created_at: string
           id: string
           message: string
+          metadata: Json
           profile_id: string
           role: Database["public"]["Enums"]["chat_role"]
           session_id: string
@@ -148,6 +149,7 @@ export type Database = {
           created_at?: string
           id?: string
           message: string
+          metadata?: Json
           profile_id: string
           role: Database["public"]["Enums"]["chat_role"]
           session_id?: string
@@ -158,6 +160,7 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string
+          metadata?: Json
           profile_id?: string
           role?: Database["public"]["Enums"]["chat_role"]
           session_id?: string
