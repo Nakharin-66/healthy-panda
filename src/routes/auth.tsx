@@ -33,6 +33,7 @@ function AuthScreen() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   useEffect(() => {
     if (!loading && signedIn) navigate({ to: "/dashboard" });
@@ -43,7 +44,7 @@ function AuthScreen() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -52,10 +53,26 @@ function AuthScreen() {
           },
         });
         if (error) throw error;
-        toast.success("สมัครสำเร็จ! เข้าสู่ระบบได้เลย 🐼");
+        if (data.session) {
+          navigate({ to: "/dashboard" });
+        } else {
+          setNeedsConfirm(true);
+          toast.success("สมัครสำเร็จ! กรุณายืนยันอีเมลในกล่องจดหมายของคุณก่อนเข้าสู่ระบบ 🐼");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message.toLowerCase().includes("not confirmed")) {
+            setNeedsConfirm(true);
+            toast.error("อีเมลนี้ยังไม่ได้ยืนยัน กรุณากดยืนยันในอีเมลก่อนเข้าสู่ระบบ");
+            return;
+          }
+          if (error.message.toLowerCase().includes("invalid login")) {
+            toast.error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            return;
+          }
+          throw error;
+        }
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
@@ -65,13 +82,31 @@ function AuthScreen() {
     }
   };
 
+  const resend = async () => {
+    if (!email) {
+      toast.error("กรอกอีเมลก่อนนะ");
+      return;
+    }
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) toast.error(error.message);
+    else toast.success("ส่งอีเมลยืนยันใหม่แล้ว ตรวจกล่องจดหมายของคุณ");
+  };
+
   const google = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/dashboard` },
     });
     if (error) {
-      toast.error("เข้าสู่ระบบด้วย Google ไม่สำเร็จ");
+      toast.error(
+        error.message.toLowerCase().includes("not enabled")
+          ? "ยังไม่ได้เปิดใช้งาน Google ในโปรเจกต์ Supabase ของคุณ"
+          : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ",
+      );
     }
   };
 
