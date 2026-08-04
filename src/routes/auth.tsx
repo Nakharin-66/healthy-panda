@@ -67,15 +67,13 @@ function AuthScreen() {
   };
 
   const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
     });
-    if (result.error) {
+    if (error) {
       toast.error("เข้าสู่ระบบด้วย Google ไม่สำเร็จ");
-      return;
     }
-    if (result.redirected) return;
-    navigate({ to: "/dashboard" });
   };
 
   return (
