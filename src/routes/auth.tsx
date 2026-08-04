@@ -167,6 +167,15 @@ function AuthScreen() {
           >
             เข้าสู่ระบบด้วย Google
           </button>
+          {needsConfirm ? (
+            <button
+              type="button"
+              onClick={resend}
+              className="w-full rounded-2xl bg-secondary py-3 text-xs font-extrabold text-primary active:scale-[0.98]"
+            >
+              ส่งอีเมลยืนยันอีกครั้ง
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
