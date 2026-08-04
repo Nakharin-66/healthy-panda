@@ -39,6 +39,24 @@ function AuthScreen() {
     if (!loading && signedIn) navigate({ to: "/dashboard" });
   }, [loading, signedIn, navigate]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const err = params.get("error_description") || params.get("error");
+    if (err) toast.error(decodeURIComponent(err));
+  }, []);
+
+  const authErrorMessage = (message: string) => {
+    const m = message.toLowerCase();
+    if (m.includes("rate limit"))
+      return "ส่งอีเมลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่ (จำกัดโดย Supabase)";
+    if (m.includes("email address") && m.includes("invalid"))
+      return "อีเมลนี้ไม่ถูกต้องหรือถูกปฏิเสธ กรุณาใช้อีเมลจริงอีกอันหนึ่ง";
+    if (m.includes("already registered") || m.includes("already been registered"))
+      return "อีเมลนี้สมัครไว้แล้ว กรุณาเข้าสู่ระบบ";
+    if (m.includes("password")) return "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+    return message;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -48,7 +66,7 @@ function AuthScreen() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/auth`,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -76,7 +94,7 @@ function AuthScreen() {
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+      toast.error(authErrorMessage(err instanceof Error ? err.message : "เกิดข้อผิดพลาด"));
     } finally {
       setBusy(false);
     }
@@ -90,25 +108,46 @@ function AuthScreen() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: { emailRedirectTo: `${window.location.origin}/auth` },
     });
-    if (error) toast.error(error.message);
+    if (error) toast.error(authErrorMessage(error.message));
     else toast.success("ส่งอีเมลยืนยันใหม่แล้ว ตรวจกล่องจดหมายของคุณ");
   };
 
   const google = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    if (error) {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+          skipBrowserRedirect: true,
+          queryParams: { prompt: "select_account" },
+        },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("ไม่สามารถสร้างลิงก์เข้าสู่ระบบ Google");
+
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        // Google blocks its sign-in page inside iframes, so continue in a new tab.
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        toast.info("เปิดหน้าเข้าสู่ระบบ Google ในแท็บใหม่ กรุณาทำต่อในแท็บนั้น");
+      } else {
+        window.location.assign(data.url);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ";
       toast.error(
-        error.message.toLowerCase().includes("not enabled")
+        message.toLowerCase().includes("not enabled")
           ? "ยังไม่ได้เปิดใช้งาน Google ในโปรเจกต์ Supabase ของคุณ"
-          : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ",
+          : message,
       );
+    } finally {
+      setBusy(false);
     }
   };
+
 
   return (
     <main className="min-h-screen bg-background px-5 py-10">
