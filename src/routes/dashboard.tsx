@@ -1,0 +1,339 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { AppScreen } from "@/components/BottomNav";
+import { PandaHeader } from "@/components/PandaHeader";
+import { SignInPrompt } from "@/components/SignInPrompt";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  useProfile,
+  useGoals,
+  useTodayWater,
+  useAddWater,
+  useTodayFood,
+  useLatestVitals,
+  DEFAULT_GOALS,
+} from "@/lib/db";
+import {
+  useActivityLogs,
+  useActivityRealtime,
+  totalDistanceKm,
+} from "@/lib/activities";
+import {
+  Heart,
+  Moon,
+  Droplets,
+  Activity,
+  Footprints,
+  ScanLine,
+  Dumbbell,
+  Barcode,
+  GlassWater,
+  Plus,
+  Route as Route2,
+} from "lucide-react";
+
+export const Route = createFileRoute("/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "แดชบอร์ดสุขภาพ | Healthy Panda" },
+      {
+        name: "description",
+        content: "ดูอัตราการเต้นหัวใจ การนอน ออกซิเจน ก้าวเดิน แคลอรีและน้ำดื่มของคุณในที่เดียว",
+      },
+      { property: "og:title", content: "แดชบอร์ดสุขภาพ | Healthy Panda" },
+      {
+        property: "og:description",
+        content: "สรุปสุขภาพรายวันจากสมาร์ทวอทช์ พร้อมแคลอรี สารอาหารหลัก และการดื่มน้ำ",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Dashboard,
+});
+
+const toneClass: Record<string, string> = {
+  berry: "bg-berry-soft text-berry",
+  info: "bg-info-soft text-info",
+  success: "bg-success-soft text-success",
+  primary: "bg-primary-soft text-primary",
+};
+
+function Ring({ eaten, goal }: { eaten: number; goal: number }) {
+  const pct = Math.min(goal > 0 ? eaten / goal : 0, 1);
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative grid size-36 shrink-0 place-items-center">
+      <svg viewBox="0 0 120 120" className="size-36 -rotate-90">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--muted)" strokeWidth="12" />
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - pct)}
+        />
+      </svg>
+      <div className="absolute text-center">
+        <p className="text-2xl font-black leading-none">{Math.round(eaten)}</p>
+        <p className="text-[11px] font-bold text-muted-foreground">/ {goal} kcal</p>
+      </div>
+    </div>
+  );
+}
+
+function MacroBar({
+  label,
+  value,
+  goal,
+  color,
+}: {
+  label: string;
+  value: number;
+  goal: number;
+  color: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-[11px] font-bold">
+        <span>{label}</span>
+        <span className="text-muted-foreground">
+          {Math.round(value)}/{goal}ก
+        </span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.min((value / (goal || 1)) * 100, 100)}%`, background: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function fmt(v: number | undefined, digits = 0) {
+  if (v === undefined) return "—";
+  return v.toLocaleString("th-TH", { maximumFractionDigits: digits });
+}
+
+function Dashboard() {
+  const { signedIn, loading } = useAuth();
+  const { data: profile } = useProfile();
+  const profileId = profile?.id;
+  const { data: goals } = useGoals(profileId);
+  const { data: water } = useTodayWater(profileId);
+  const { data: food } = useTodayFood(profileId);
+  const { data: vitals } = useLatestVitals(profileId);
+  const addWater = useAddWater(profileId);
+  const { data: activityLogs } = useActivityLogs(profileId, 30);
+  useActivityRealtime(profileId);
+
+  const g = goals ?? { ...DEFAULT_GOALS };
+  const waterMl = water?.total ?? 0;
+  const waterGoal = g.water_goal_ml;
+  const totals = food?.totals ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+  const logs = activityLogs ?? [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const weekSince = new Date();
+  weekSince.setDate(weekSince.getDate() - 6);
+  weekSince.setHours(0, 0, 0, 0);
+  const monthSince = new Date();
+  monthSince.setDate(monthSince.getDate() - 29);
+  monthSince.setHours(0, 0, 0, 0);
+  const distance = {
+    today: totalDistanceKm(logs.filter((l) => l.performed_at.slice(0, 10) === todayKey)),
+    week: totalDistanceKm(logs.filter((l) => new Date(l.performed_at) >= weekSince)),
+    month: totalDistanceKm(logs.filter((l) => new Date(l.performed_at) >= monthSince)),
+  };
+
+
+
+  const sleepMinutes = vitals?.["sleep_minutes"]?.value;
+  const vitalCards = [
+    {
+      icon: Heart,
+      label: "หัวใจ",
+      value: fmt(vitals?.["heart_rate"]?.value),
+      unit: "bpm",
+      tone: "berry",
+    },
+    {
+      icon: Moon,
+      label: "การนอน",
+      value:
+        sleepMinutes === undefined
+          ? "—"
+          : `${Math.floor(sleepMinutes / 60)}ชม ${Math.round(sleepMinutes % 60)}`,
+      unit: "นาที",
+      tone: "info",
+    },
+    { icon: Droplets, label: "SpO₂", value: fmt(vitals?.["spo2"]?.value), unit: "%", tone: "success" },
+    {
+      icon: Activity,
+      label: "แคลอรีเผาผลาญ",
+      value: fmt(vitals?.["calories_burned"]?.value),
+      unit: "kcal",
+      tone: "primary",
+    },
+    {
+      icon: Footprints,
+      label: "ก้าวเดิน",
+      value: fmt(vitals?.["steps"]?.value),
+      unit: `เป้า ${g.steps_goal.toLocaleString("th-TH")}`,
+      tone: "primary",
+    },
+    ...(distance.today > 0 || distance.week > 0
+      ? [
+          {
+            icon: Route2,
+            label: "ระยะทางวันนี้",
+            value: fmt(distance.today, 2),
+            unit: `สัปดาห์นี้ ${fmt(distance.week, 2)} กม.`,
+            tone: "success",
+          },
+        ]
+      : []),
+  ];
+
+  if (!loading && !signedIn) {
+    return (
+      <AppScreen>
+        <PandaHeader title="สวัสดี!" subtitle="เริ่มต้นใช้งาน Healthy Panda 🐼" />
+        <SignInPrompt />
+      </AppScreen>
+    );
+  }
+
+  return (
+    <AppScreen>
+      <PandaHeader
+        title={`สวัสดี, ${profile?.display_name ?? "เพื่อนแพนด้า"}!`}
+        subtitle="วันนี้ไปได้สวยเลย 🐼"
+        streak={profile?.streak_days ?? 0}
+      />
+
+      <section className="mb-4">
+        <h2 className="mb-2 text-sm font-extrabold text-muted-foreground">
+          ข้อมูลจากอุปกรณ์สุขภาพ
+        </h2>
+        <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+          {vitalCards.map(({ icon: Icon, label, value, unit, tone }) => (
+            <div key={label} className="card-soft w-32 shrink-0 p-3">
+              <span
+                className={`mb-2 inline-grid size-8 place-items-center rounded-xl ${toneClass[tone]}`}
+              >
+                <Icon className="size-4" strokeWidth={2.4} />
+              </span>
+              <p className="text-[11px] font-bold text-muted-foreground">{label}</p>
+              <p className="text-lg font-black leading-tight">{value}</p>
+              <p className="text-[11px] font-semibold text-muted-foreground">{unit}</p>
+            </div>
+          ))}
+        </div>
+        {vitals && Object.keys(vitals).length === 0 ? (
+          <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+            ยังไม่มีข้อมูลจากอุปกรณ์ — จับคู่ Health Connect ได้ในหน้าบัญชี
+          </p>
+        ) : null}
+      </section>
+
+      {distance.month > 0 ? (
+        <section className="card-soft mb-4 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="grid size-9 place-items-center rounded-2xl bg-success-soft text-success">
+              <Route2 className="size-4" strokeWidth={2.4} />
+            </span>
+            <p className="text-sm font-extrabold">ระยะทางรวม</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { l: "วันนี้", v: distance.today },
+              { l: "7 วัน", v: distance.week },
+              { l: "30 วัน", v: distance.month },
+            ].map((d) => (
+              <div key={d.l} className="rounded-2xl bg-success-soft p-2">
+                <p className="text-sm font-black">{fmt(d.v, 2)} กม.</p>
+                <p className="text-[10px] font-bold text-muted-foreground">{d.l}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+
+
+      <section className="card-soft mb-4 flex items-center gap-4 p-4">
+        <Ring eaten={totals.calories} goal={g.calories_goal} />
+        <div className="flex-1 space-y-3">
+          <MacroBar
+            label="โปรตีน"
+            value={totals.protein}
+            goal={g.protein_goal_g}
+            color="var(--success)"
+          />
+          <MacroBar label="คาร์บ" value={totals.carbs} goal={g.carb_goal_g} color="var(--primary)" />
+          <MacroBar label="ไขมัน" value={totals.fat} goal={g.fat_goal_g} color="var(--berry)" />
+        </div>
+      </section>
+
+      <section className="card-soft mb-4 p-4">
+        <div className="flex items-center gap-3">
+          <span className="grid size-12 place-items-center rounded-2xl bg-info-soft text-info">
+            <GlassWater className="size-6" strokeWidth={2.3} />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-extrabold">การดื่มน้ำ</p>
+            <p className="text-xs font-bold text-muted-foreground">
+              {waterMl} / {waterGoal} ml
+            </p>
+          </div>
+          <button
+            onClick={() => addWater.mutate(250)}
+            disabled={addWater.isPending || !profileId}
+            className="flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95 disabled:opacity-60"
+          >
+            <Plus className="size-3.5" /> 250ml
+          </button>
+        </div>
+        <div className="mt-3 flex gap-1.5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-8 flex-1 rounded-lg border-2 border-info/25 ${
+                i < Math.round((waterMl / waterGoal) * 10) ? "bg-info/70" : "bg-info-soft"
+              }`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-extrabold text-muted-foreground">ทำงานด่วน</h2>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { to: "/scan", label: "สแกนอาหาร", icon: ScanLine },
+            { to: "/goals", label: "บันทึกออกกำลังกาย", icon: Dumbbell },
+            { to: "/scan", label: "สแกนบาร์โค้ด", icon: Barcode },
+          ].map(({ to, label, icon: Icon }) => (
+            <Link
+              key={label}
+              to={to}
+              className="card-soft flex flex-col items-center gap-2 p-3 text-center active:scale-95"
+            >
+              <span className="grid size-10 place-items-center rounded-2xl bg-primary-soft text-primary">
+                <Icon className="size-5" strokeWidth={2.4} />
+              </span>
+              <span className="text-[11px] font-extrabold leading-tight">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </AppScreen>
+  );
+}

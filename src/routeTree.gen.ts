@@ -10,33 +10,142 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CoachRouteImport } from './routes/coach'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ScanRouteImport } from './routes/scan'
+import { Route as ApiPublicHealthConnectIngestRouteImport } from './routes/api/public/health-connect/ingest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachRoute = CoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHealthConnectIngestRoute =
+  ApiPublicHealthConnectIngestRouteImport.update({
+    id: '/api/public/health-connect/ingest',
+    path: '/api/public/health-connect/ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/coach': typeof CoachRoute
+  '/dashboard': typeof DashboardRoute
+  '/goals': typeof GoalsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
+  '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/coach': typeof CoachRoute
+  '/dashboard': typeof DashboardRoute
+  '/goals': typeof GoalsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
+  '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/coach': typeof CoachRoute
+  '/dashboard': typeof DashboardRoute
+  '/goals': typeof GoalsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
+  '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/coach'
+    | '/dashboard'
+    | '/goals'
+    | '/leaderboard'
+    | '/profile'
+    | '/scan'
+    | '/api/public/health-connect/ingest'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/coach'
+    | '/dashboard'
+    | '/goals'
+    | '/leaderboard'
+    | '/profile'
+    | '/scan'
+    | '/api/public/health-connect/ingest'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/coach'
+    | '/dashboard'
+    | '/goals'
+    | '/leaderboard'
+    | '/profile'
+    | '/scan'
+    | '/api/public/health-connect/ingest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  CoachRoute: typeof CoachRoute
+  DashboardRoute: typeof DashboardRoute
+  GoalsRoute: typeof GoalsRoute
+  LeaderboardRoute: typeof LeaderboardRoute
+  ProfileRoute: typeof ProfileRoute
+  ScanRoute: typeof ScanRoute
+  ApiPublicHealthConnectIngestRoute: typeof ApiPublicHealthConnectIngestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +157,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coach': {
+      id: '/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof CoachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/health-connect/ingest': {
+      id: '/api/public/health-connect/ingest'
+      path: '/api/public/health-connect/ingest'
+      fullPath: '/api/public/health-connect/ingest'
+      preLoaderRoute: typeof ApiPublicHealthConnectIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  CoachRoute: CoachRoute,
+  DashboardRoute: DashboardRoute,
+  GoalsRoute: GoalsRoute,
+  LeaderboardRoute: LeaderboardRoute,
+  ProfileRoute: ProfileRoute,
+  ScanRoute: ScanRoute,
+  ApiPublicHealthConnectIngestRoute: ApiPublicHealthConnectIngestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

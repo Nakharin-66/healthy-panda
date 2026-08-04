@@ -1,24 +1,56 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import mascot from "@/assets/panda-mascot.png";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Healthy Panda — เริ่มต้นดูแลสุขภาพ" },
+      {
+        name: "description",
+        content: "Healthy Panda ผู้ช่วยสุขภาพ AI พร้อมมาสคอตแพนด้าแดง ติดตามแคลอรี น้ำ และกิจวัตร",
+      },
+      { property: "og:title", content: "Healthy Panda — เริ่มต้นดูแลสุขภาพ" },
+      {
+        property: "og:description",
+        content: "ผู้ช่วยสุขภาพ AI พร้อมมาสคอตแพนด้าแดง ติดตามแคลอรี น้ำ และกิจวัตรประจำวัน",
+      },
+    ],
+  }),
+  component: Splash,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Splash() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const t = setTimeout(() => navigate({ to: "/dashboard" }), 2200);
+    return () => clearTimeout(t);
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-primary px-6 text-center">
+      <div className="grid size-56 place-items-center rounded-full bg-primary-foreground/15 animate-in fade-in zoom-in-75 duration-700">
+        <img
+          src={mascot}
+          alt="มาสคอตแพนด้าแดง Healthy Panda"
+          width={816}
+          height={816}
+          className="size-44 drop-shadow-xl"
+        />
+      </div>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h1 className="text-4xl font-black tracking-tight text-primary-foreground">Healthy Panda</h1>
+        <p className="mt-2 text-sm font-bold text-primary-foreground/80">
+          สุขภาพดีเริ่มได้ทุกวัน กับเพื่อนแพนด้าของคุณ
+        </p>
+      </div>
+      <button
+        onClick={() => navigate({ to: "/dashboard" })}
+        className="mt-4 rounded-full bg-card px-8 py-3 text-sm font-extrabold text-primary shadow-[var(--shadow-card)]"
+      >
+        เข้าสู่แอป
+      </button>
+    </main>
   );
 }
