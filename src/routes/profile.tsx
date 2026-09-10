@@ -8,7 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { HealthConnectCard } from "@/components/HealthConnectCard";
 import { useProfile, useUpdateProfile, useSettings, useUpdateSettings } from "@/lib/db";
 import { useActivityLogs } from "@/lib/activities";
-import { useResolvedAvatar, useUploadAvatar, validateAvatarFile } from "@/lib/avatar";
+import {
+  useDeleteAvatar,
+  useResolvedAvatar,
+  useUploadAvatar,
+  validateAvatarFile,
+} from "@/lib/avatar";
 import { THEME_LABEL, normalizeTheme, storeTheme, useThemeSync, type ThemePref } from "@/lib/theme";
 import avatarFallback from "@/assets/panda-avatar.png";
 import {
@@ -21,6 +26,7 @@ import {
   LogOut,
   Camera,
   Loader2,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -103,6 +109,7 @@ function Profile() {
   const updateProfile = useUpdateProfile();
   const updateSettings = useUpdateSettings(profile?.id);
   const uploadAvatar = useUploadAvatar(profile?.id);
+  const deleteAvatar = useDeleteAvatar(profile?.id);
   const resolvedAvatar = useResolvedAvatar(profile?.picture_url);
 
   const theme = normalizeTheme(settings?.theme);
@@ -114,6 +121,7 @@ function Profile() {
   const [weightGoalOpen, setWeightGoalOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [removePhotoOpen, setRemovePhotoOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     birthday: "",
@@ -259,14 +267,16 @@ function Profile() {
     );
   };
 
-  const cyclePrivacy = () => {
-    const order = ["private", "friends", "public"] as const;
-    const current = settings?.privacy_level ?? "private";
-    const next = order[(order.indexOf(current) + 1) % order.length]!;
-    updateSettings.mutate(
-      { privacy_level: next },
-      { onError: () => toast.error("บันทึกความเป็นส่วนตัวไม่สำเร็จ") },
-    );
+  const hasUploadedPhoto = !!profile?.picture_url && !/^https?:\/\//.test(profile.picture_url);
+
+  const removePhoto = async () => {
+    try {
+      const fallback = await deleteAvatar.mutateAsync(profile?.picture_url ?? null);
+      toast.success(fallback ? "คืนค่ารูปโปรไฟล์เริ่มต้นแล้ว" : "ลบรูปโปรไฟล์แล้ว");
+      setRemovePhotoOpen(false);
+    } catch {
+      toast.error("ลบรูปโปรไฟล์ไม่สำเร็จ ลองอีกครั้ง");
+    }
   };
 
   const age = profile?.birthday
@@ -318,12 +328,49 @@ function Profile() {
           {profile?.birthday ? ` • ${profile.birthday}` : ""}
           {age !== null ? ` • ${age} ปี` : ""}
         </p>
-        <button
-          onClick={() => fileInput.current?.click()}
-          className="mt-3 rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold active:scale-95"
-        >
-          เปลี่ยนรูปโปรไฟล์
-        </button>
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => fileInput.current?.click()}
+            className="rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold active:scale-95"
+          >
+            เปลี่ยนรูปโปรไฟล์
+          </button>
+          {hasUploadedPhoto ? (
+            <button
+              onClick={() => setRemovePhotoOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold text-destructive active:scale-95"
+            >
+              <Trash2 className="size-3.5" strokeWidth={2.6} /> ลบรูปโปรไฟล์
+            </button>
+          ) : null}
+        </div>
+
+        {removePhotoOpen ? (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-5">
+            <div className="card-soft w-full max-w-sm p-5 text-center">
+              <p className="text-sm font-extrabold">ลบรูปโปรไฟล์นี้หรือไม่?</p>
+              <p className="mt-2 text-xs font-bold text-muted-foreground">
+                ระบบจะคืนค่ารูปโปรไฟล์เริ่มต้นของบัญชีคุณ
+              </p>
+              <div className="mt-5 flex gap-2">
+                <button
+                  onClick={() => setRemovePhotoOpen(false)}
+                  className="flex-1 rounded-2xl bg-secondary py-3 text-sm font-extrabold"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={removePhoto}
+                  disabled={deleteAvatar.isPending}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive py-3 text-sm font-extrabold text-destructive-foreground disabled:opacity-60"
+                >
+                  {deleteAvatar.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                  ลบรูปโปรไฟล์
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid w-full grid-cols-3 gap-2">
           {[
@@ -576,12 +623,24 @@ function Profile() {
           value={settingValue(THEME_LABEL[theme])}
           onClick={cycleTheme}
         />
-        <Row
-          icon={Shield}
-          label="ความเป็นส่วนตัว"
-          value={settingValue(privacyLabel[settings?.privacy_level ?? "private"])}
-          onClick={cyclePrivacy}
-        />
+        <button
+          onClick={() => navigate({ to: "/privacy" })}
+          className="flex w-full items-center gap-3 px-3 py-3.5 text-left"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+            <Shield className="size-4.5" strokeWidth={2.3} />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-extrabold">ความเป็นส่วนตัว</span>
+            <span className="mt-0.5 block text-[11px] font-bold text-muted-foreground">
+              จัดการว่าใครสามารถเห็นข้อมูลของคุณ
+            </span>
+          </span>
+          <span className="text-xs font-bold text-muted-foreground">
+            {settingValue(privacyLabel[settings?.privacy_level ?? "private"])}
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
         <Row icon={LogOut} label="ออกจากระบบ" onClick={() => setSignOutOpen(true)} />
       </section>
     </AppScreen>

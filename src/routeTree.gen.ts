@@ -15,6 +15,7 @@ import { Route as CoachRouteImport } from './routes/coach'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as ApiPublicHealthConnectIngestRouteImport } from './routes/api/public/health-connect/ingest'
@@ -49,6 +50,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/goals'
     | '/leaderboard'
+    | '/privacy'
     | '/profile'
     | '/scan'
     | '/api/public/health-connect/ingest'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/goals'
     | '/leaderboard'
+    | '/privacy'
     | '/profile'
     | '/scan'
     | '/api/public/health-connect/ingest'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/goals'
     | '/leaderboard'
+    | '/privacy'
     | '/profile'
     | '/scan'
     | '/api/public/health-connect/ingest'
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   GoalsRoute: typeof GoalsRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ScanRoute: typeof ScanRoute
   ApiPublicHealthConnectIngestRoute: typeof ApiPublicHealthConnectIngestRoute
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   GoalsRoute: GoalsRoute,
   LeaderboardRoute: LeaderboardRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ScanRoute: ScanRoute,
   ApiPublicHealthConnectIngestRoute: ApiPublicHealthConnectIngestRoute,
