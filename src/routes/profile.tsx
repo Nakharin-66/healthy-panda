@@ -328,12 +328,49 @@ function Profile() {
           {profile?.birthday ? ` • ${profile.birthday}` : ""}
           {age !== null ? ` • ${age} ปี` : ""}
         </p>
-        <button
-          onClick={() => fileInput.current?.click()}
-          className="mt-3 rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold active:scale-95"
-        >
-          เปลี่ยนรูปโปรไฟล์
-        </button>
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => fileInput.current?.click()}
+            className="rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold active:scale-95"
+          >
+            เปลี่ยนรูปโปรไฟล์
+          </button>
+          {hasUploadedPhoto ? (
+            <button
+              onClick={() => setRemovePhotoOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border-2 border-border px-4 py-2 text-xs font-extrabold text-destructive active:scale-95"
+            >
+              <Trash2 className="size-3.5" strokeWidth={2.6} /> ลบรูปโปรไฟล์
+            </button>
+          ) : null}
+        </div>
+
+        {removePhotoOpen ? (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-5">
+            <div className="card-soft w-full max-w-sm p-5 text-center">
+              <p className="text-sm font-extrabold">ลบรูปโปรไฟล์นี้หรือไม่?</p>
+              <p className="mt-2 text-xs font-bold text-muted-foreground">
+                ระบบจะคืนค่ารูปโปรไฟล์เริ่มต้นของบัญชีคุณ
+              </p>
+              <div className="mt-5 flex gap-2">
+                <button
+                  onClick={() => setRemovePhotoOpen(false)}
+                  className="flex-1 rounded-2xl bg-secondary py-3 text-sm font-extrabold"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={removePhoto}
+                  disabled={deleteAvatar.isPending}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive py-3 text-sm font-extrabold text-destructive-foreground disabled:opacity-60"
+                >
+                  {deleteAvatar.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                  ลบรูปโปรไฟล์
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid w-full grid-cols-3 gap-2">
           {[
