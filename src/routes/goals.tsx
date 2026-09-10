@@ -101,6 +101,9 @@ function Goals() {
   const softDelete = useSoftDeleteActivityLog();
   const deleteType = useDeleteActivityType();
   const archiveGoal = useArchiveGoal();
+  const restoreGoal = useRestoreGoal();
+  const deleteGoal = useDeleteGoal();
+  const { data: archivedGoals, isLoading: archivedLoading } = useArchivedGoals(profileId);
 
   const [tab, setTab] = useState<Tab>("logs");
   const [typeDialog, setTypeDialog] = useState(false);
