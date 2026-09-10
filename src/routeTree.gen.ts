@@ -19,6 +19,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
+import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
 import { Route as FriendsProfileIdRouteImport } from './routes/friends.$profileId'
 import { Route as ApiPublicHealthConnectIngestRouteImport } from './routes/api/public/health-connect/ingest'
 
@@ -72,6 +73,11 @@ const ScanRoute = ScanRouteImport.update({
   path: '/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChallengesChallengeIdRoute = ChallengesChallengeIdRouteImport.update({
+  id: '/challenges/$challengeId',
+  path: '/challenges/$challengeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FriendsProfileIdRoute = FriendsProfileIdRouteImport.update({
   id: '/$profileId',
   path: '/$profileId',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/challenges/$challengeId'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesByTo: FileRoutesByTo
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/challenges/$challengeId'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   id:
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/challenges/$challengeId'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesById: FileRoutesById
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ScanRoute: typeof ScanRoute
+  ChallengesChallengeIdRoute: typeof ChallengesChallengeIdRoute
   ApiPublicHealthConnectIngestRoute: typeof ApiPublicHealthConnectIngestRoute
 }
 
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/challenges/$challengeId': {
+      id: '/challenges/$challengeId'
+      path: '/challenges/$challengeId'
+      fullPath: '/challenges/$challengeId'
+      preLoaderRoute: typeof ChallengesChallengeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/friends/$profileId': {
       id: '/friends/$profileId'
       path: '/$profileId'
@@ -297,6 +317,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ScanRoute: ScanRoute,
+  ChallengesChallengeIdRoute: ChallengesChallengeIdRoute,
   ApiPublicHealthConnectIngestRoute: ApiPublicHealthConnectIngestRoute,
 }
 export const routeTree = rootRouteImport

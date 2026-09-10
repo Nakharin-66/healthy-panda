@@ -5,21 +5,42 @@ import { AppScreen } from "@/components/BottomNav";
 import { PandaHeader } from "@/components/PandaHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { SignInPrompt } from "@/components/SignInPrompt";
+import { ChallengeDialog } from "@/components/ChallengeDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/lib/db";
 import { useResolvedAvatar } from "@/lib/avatar";
-import { friendErrorMessage, useFriendRealtime, useFriendSummary } from "@/lib/friends";
+import { useFriendRealtime, useFriendSummary } from "@/lib/friends";
 import {
+  CATEGORY_LABEL,
   METRIC_LABEL,
+  challengeErrorMessage,
   challengeStatus,
-  metricUnit,
-  useActiveChallenges,
+  daysLeft,
+  goalText,
+  progressTarget,
+  progressUnit,
+  useChallengeInvites,
+  useChallengeRealtime,
   useJoinChallenge,
   useLeaderboard,
-  useMyParticipation,
+  useLookupChallengeCode,
+  useRespondChallengeInvite,
   useSyncProgress,
+  useVisibleChallenges,
+  type ChallengeView,
 } from "@/lib/challenges";
-import { Trophy, Check, Loader2, Users, Medal, Clock } from "lucide-react";
+import {
+  Trophy,
+  Check,
+  Loader2,
+  Users,
+  Medal,
+  Clock,
+  Plus,
+  Search,
+  Mail,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
@@ -27,7 +48,7 @@ export const Route = createFileRoute("/leaderboard")({
       { title: "ชาเลนจ์ & ตารางอันดับ | Healthy Panda" },
       {
         name: "description",
-        content: "เข้าร่วมชาเลนจ์สุขภาพ ติดตามความคืบหน้าจริงของคุณ และเทียบอันดับกับเพื่อนแบบเรียลไทม์",
+        content: "สร้างชาเลนจ์ของคุณเอง เข้าร่วมด้วยรหัสชาเลนจ์ และเทียบอันดับกับเพื่อนแบบเรียลไทม์",
       },
       { property: "og:title", content: "ชาเลนจ์ & ตารางอันดับ | Healthy Panda" },
       {
@@ -44,11 +65,6 @@ export const Route = createFileRoute("/leaderboard")({
 const numberTH = (n: number) =>
   Math.round(Number(n)).toLocaleString("th-TH", { maximumFractionDigits: 0 });
 
-function daysLeft(endDate: string) {
-  const end = new Date(`${endDate}T23:59:59`);
-  return Math.ceil((end.getTime() - Date.now()) / 86_400_000);
-}
-
 function Leaderboard() {
   const navigate = useNavigate();
   const { signedIn, loading } = useAuth();
@@ -56,16 +72,22 @@ function Leaderboard() {
   const myAvatar = useResolvedAvatar(profile?.picture_url);
 
   useFriendRealtime(signedIn);
+  useChallengeRealtime(signedIn);
   useSyncProgress(signedIn && !!profile?.id);
 
-  const challenges = useActiveChallenges();
-  const participation = useMyParticipation(profile?.id);
+  const challenges = useVisibleChallenges(signedIn);
+  const invites = useChallengeInvites(signedIn);
   const summary = useFriendSummary(signedIn);
   const join = useJoinChallenge();
+  const lookup = useLookupChallengeCode();
+  const respondInvite = useRespondChallengeInvite();
 
   const [tab, setTab] = useState<"challenges" | "ranking">("challenges");
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const [friendsOnly, setFriendsOnly] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [code, setCode] = useState("");
+  const [found, setFound] = useState<ChallengeView | null>(null);
 
   const list = challenges.data ?? [];
   useEffect(() => {
@@ -74,12 +96,18 @@ function Leaderboard() {
 
   const board = useLeaderboard(signedIn ? selected : undefined, friendsOnly);
   const current = list.find((c) => c.id === selected);
+  const pendingInvites = (invites.data ?? []).filter(
+    (i) => i.status === "pending" && i.direction === "incoming",
+  );
+
+  const openDetail = (id: string) =>
+    navigate({ to: "/challenges/$challengeId", params: { challengeId: id } });
 
   if (!loading && !signedIn) {
     return (
       <AppScreen>
         <PandaHeader title="ชาเลนจ์ & อันดับ" subtitle="แข่งกับเพื่อนด้วยข้อมูลจริง" />
-        <SignInPrompt message="เข้าสู่ระบบเพื่อเข้าร่วมชาเลนจ์และดูอันดับของคุณ" />
+        <SignInPrompt message="เข้าสู่ระบบเพื่อสร้างชาเลนจ์ เข้าร่วม และดูอันดับของคุณ" />
       </AppScreen>
     );
   }
@@ -94,21 +122,122 @@ function Leaderboard() {
         avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ของคุณ"}
       />
 
-      <button
-        onClick={() => navigate({ to: "/friends" })}
-        className="mb-4 flex w-full items-center gap-2 rounded-2xl bg-primary-soft px-4 py-3 text-xs font-extrabold text-primary"
-      >
-        <Users className="size-4" /> จัดการเพื่อน
-        {summary.data?.pending_incoming ? (
-          <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
-            {summary.data.pending_incoming} คำขอใหม่
-          </span>
-        ) : (
-          <span className="ml-auto text-[11px] font-bold text-muted-foreground">
-            {summary.data?.friend_count ?? 0} คน
-          </span>
-        )}
-      </button>
+      <div className="mb-3 flex gap-2">
+        <button
+          onClick={() => setCreating(true)}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-xs font-extrabold text-primary-foreground active:scale-[0.98]"
+        >
+          <Plus className="size-4" /> สร้างชาเลนจ์
+        </button>
+        <button
+          onClick={() => navigate({ to: "/friends" })}
+          className="flex items-center gap-1.5 rounded-2xl bg-primary-soft px-4 py-3 text-xs font-extrabold text-primary"
+        >
+          <Users className="size-4" /> เพื่อน
+          {summary.data?.pending_incoming ? (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
+              {summary.data.pending_incoming}
+            </span>
+          ) : null}
+        </button>
+      </div>
+
+      <section className="card-soft mb-3 p-3">
+        <p className="mb-2 text-[11px] font-extrabold text-muted-foreground">
+          เข้าร่วมด้วยรหัสชาเลนจ์
+        </p>
+        <div className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="CH-XXXXX"
+            aria-label="รหัสชาเลนจ์"
+            className="min-w-0 flex-1 rounded-2xl border border-border bg-card px-3 py-2.5 text-sm font-extrabold tracking-wider outline-none focus:border-primary"
+          />
+          <button
+            disabled={lookup.isPending || code.trim().length < 4}
+            onClick={() =>
+              lookup.mutate(code.trim(), {
+                onSuccess: (row) => {
+                  setFound(row);
+                  if (!row) toast.error("ไม่พบรหัสชาเลนจ์นี้");
+                },
+                onError: (e) => toast.error(challengeErrorMessage(e)),
+              })
+            }
+            className="flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-60"
+          >
+            {lookup.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Search className="size-4" />
+            )}
+            ค้นหา
+          </button>
+        </div>
+        {found ? (
+          <div className="mt-3 flex items-center gap-2 rounded-2xl bg-primary-soft p-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-extrabold">{found.title}</p>
+              <p className="text-[11px] font-bold text-muted-foreground">{goalText(found)}</p>
+            </div>
+            <button
+              onClick={() => openDetail(found.id)}
+              className="rounded-xl bg-primary px-3 py-1.5 text-[10px] font-extrabold text-primary-foreground"
+            >
+              ดูรายละเอียด
+            </button>
+            <button onClick={() => setFound(null)} aria-label="ปิดผลการค้นหา">
+              <X className="size-4 text-muted-foreground" />
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      {pendingInvites.length ? (
+        <section className="card-soft mb-3 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold text-primary">
+            <Mail className="size-4" /> คำเชิญเข้าร่วมชาเลนจ์ ({pendingInvites.length})
+          </p>
+          <ul className="space-y-2">
+            {pendingInvites.map((i) => (
+              <li key={i.id} className="flex items-center gap-2">
+                <PersonAvatar
+                  pictureUrl={i.counterpart_picture}
+                  name={i.counterpart_name}
+                  className="size-9"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-extrabold">{i.challenge_title}</p>
+                  <p className="text-[11px] font-bold text-muted-foreground">
+                    จาก {i.counterpart_name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => openDetail(i.challenge_id)}
+                  className="rounded-xl bg-primary px-3 py-1.5 text-[10px] font-extrabold text-primary-foreground"
+                >
+                  ดูและเข้าร่วม
+                </button>
+                <button
+                  onClick={() =>
+                    respondInvite.mutate(
+                      { id: i.id, action: "reject" },
+                      {
+                        onSuccess: () => toast.success("ปฏิเสธคำเชิญแล้ว"),
+                        onError: (e) => toast.error(challengeErrorMessage(e)),
+                      },
+                    )
+                  }
+                  className="rounded-xl bg-muted px-2.5 py-1.5 text-[10px] font-extrabold text-muted-foreground"
+                >
+                  ปฏิเสธ
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="mb-4 flex gap-2">
         {(
@@ -137,15 +266,13 @@ function Leaderboard() {
         ) : challenges.isError ? (
           <Info>ไม่สามารถโหลดชาเลนจ์ได้</Info>
         ) : list.length === 0 ? (
-          <Info>ยังไม่มีชาเลนจ์ที่เปิดให้เข้าร่วม</Info>
+          <Info>ยังไม่มีชาเลนจ์ — กด “สร้างชาเลนจ์” เพื่อเริ่มชาเลนจ์แรกของคุณ</Info>
         ) : (
           <section className="space-y-2.5">
             {list.map((c) => {
-              const mine = participation.data?.find((p) => p.challenge_id === c.id);
-              const status = challengeStatus(c, !!mine, !!mine?.completed);
-              const target = Number(c.target_value) || 0;
-              const progress = Number(mine?.progress ?? 0);
-              const pct = target ? Math.min(Math.round((progress / target) * 100), 100) : 0;
+              const status = challengeStatus(c);
+              const target = progressTarget(c);
+              const pct = target ? Math.min(Math.round((c.my_progress / target) * 100), 100) : 0;
               const left = daysLeft(c.end_date);
               return (
                 <div key={c.id} className="card-soft p-4">
@@ -155,25 +282,34 @@ function Leaderboard() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-extrabold">{c.title}</p>
-                      <p className="text-xs font-semibold text-muted-foreground">{c.description}</p>
+                      {c.description ? (
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          {c.description}
+                        </p>
+                      ) : null}
                       <p className="mt-1 text-[11px] font-bold text-primary">
-                        {METRIC_LABEL[c.metric] ?? c.metric} • เป้าหมาย {numberTH(target)}{" "}
-                        {metricUnit(c)} • +{c.reward_points} แต้ม
+                        {CATEGORY_LABEL[c.category]} • {METRIC_LABEL[c.metric] ?? c.metric} •{" "}
+                        {goalText(c)} • +{c.reward_points} แต้ม
                       </p>
                       <p className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
                         <Clock className="size-3.5" />
                         {left > 0 ? `เหลืออีก ${left} วัน` : "หมดเวลาแล้ว"} • ถึง{" "}
-                        {new Date(c.end_date).toLocaleDateString("th-TH")}
+                        {new Date(c.end_date).toLocaleDateString("th-TH")} • {c.participant_count} คน
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-bold text-muted-foreground">
+                        รหัส {c.challenge_code}
+                        {c.is_owner ? " • คุณเป็นผู้สร้าง" : ""}
+                        {c.invited && !c.joined ? " • คุณได้รับคำเชิญ" : ""}
                       </p>
                     </div>
                   </div>
 
-                  {mine ? (
+                  {c.joined ? (
                     <div className="mt-3">
                       <div className="mb-1 flex items-center justify-between text-[11px] font-extrabold text-muted-foreground">
                         <span>ความคืบหน้าของคุณ</span>
                         <span>
-                          {numberTH(progress)} / {numberTH(target)} {metricUnit(c)}
+                          {numberTH(c.my_progress)} / {numberTH(target)} {progressUnit(c)}
                         </span>
                       </div>
                       <div className="h-3 overflow-hidden rounded-full bg-muted">
@@ -187,20 +323,20 @@ function Leaderboard() {
 
                   <div className="mt-3 flex gap-2">
                     <button
-                      disabled={!!mine || join.isPending || status.key === "expired"}
+                      disabled={c.joined || join.isPending || status.key === "expired"}
                       onClick={() =>
                         join.mutate(c.id, {
                           onSuccess: () => toast.success("เข้าร่วมชาเลนจ์แล้ว!"),
-                          onError: (e) => toast.error(friendErrorMessage(e)),
+                          onError: (e) => toast.error(challengeErrorMessage(e)),
                         })
                       }
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-xs font-extrabold ${
-                        mine
+                        c.joined
                           ? "bg-success-soft text-success"
                           : "bg-primary text-primary-foreground active:scale-[0.98] disabled:opacity-60"
                       }`}
                     >
-                      {mine ? (
+                      {c.joined ? (
                         <>
                           <Check className="size-4" /> {status.label}
                         </>
@@ -211,13 +347,10 @@ function Leaderboard() {
                       )}
                     </button>
                     <button
-                      onClick={() => {
-                        setSelected(c.id);
-                        setTab("ranking");
-                      }}
+                      onClick={() => openDetail(c.id)}
                       className="rounded-2xl bg-primary-soft px-3 py-2.5 text-xs font-extrabold text-primary"
                     >
-                      ดูอันดับ
+                      รายละเอียด
                     </button>
                   </div>
                 </div>
@@ -273,7 +406,7 @@ function Leaderboard() {
               <Loader2 className="size-4 animate-spin" /> กำลังโหลดอันดับ...
             </Info>
           ) : board.isError ? (
-            <Info>ไม่สามารถโหลดตารางอันดับได้</Info>
+            <Info>คุณไม่มีสิทธิ์ดูตารางอันดับของชาเลนจ์นี้</Info>
           ) : (board.data ?? []).length === 0 ? (
             <Info>
               ยังไม่มีผู้เข้าร่วมที่แชร์ข้อมูลในชาเลนจ์นี้ — เข้าร่วมชาเลนจ์หรือเพิ่มเพื่อนเพื่อเริ่มแข่งกัน
@@ -303,7 +436,7 @@ function Leaderboard() {
                       ) : null}
                     </p>
                     <p className="text-[11px] font-bold text-muted-foreground">
-                      {numberTH(Number(row.progress))} {current ? metricUnit(current) : ""}
+                      {numberTH(Number(row.progress))} {current ? progressUnit(current) : ""}
                       {row.completed ? " • สำเร็จแล้ว" : ""}
                     </p>
                   </div>
@@ -330,6 +463,12 @@ function Leaderboard() {
           </p>
         </>
       )}
+
+      <ChallengeDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(id) => openDetail(id)}
+      />
     </AppScreen>
   );
 }
