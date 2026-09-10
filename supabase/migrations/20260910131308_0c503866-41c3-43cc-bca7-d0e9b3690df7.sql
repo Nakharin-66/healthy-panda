@@ -1,0 +1,15 @@
+REVOKE EXECUTE ON FUNCTION public.regenerate_friend_code() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.are_friends(uuid, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.friend_summary() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.lookup_friend_code(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.send_friend_request(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.respond_friend_request(uuid, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.remove_friend(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.list_friends() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.list_friend_requests() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.sync_challenge_progress() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.join_challenge(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.challenge_leaderboard(uuid, boolean) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.friend_public_profile(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.enforce_friend_limit() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.generate_friend_code() FROM anon, authenticated;
