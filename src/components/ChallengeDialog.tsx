@@ -50,10 +50,19 @@ export function ChallengeDialog({
 
   const submit = () => {
     const targetValue = Number(target);
-    if (!title.trim()) return toast.error("กรุณาตั้งชื่อชาเลนจ์");
-    if (!Number.isFinite(targetValue) || targetValue <= 0)
-      return toast.error("กรุณาระบุเป้าหมายให้มากกว่า 0");
-    if (endDate < startDate) return toast.error("วันสิ้นสุดต้องไม่มาก่อนวันเริ่ม");
+    if (!title.trim()) {
+      toast.error("กรุณาตั้งชื่อชาเลนจ์");
+      return;
+    }
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      toast.error("กรุณาระบุเป้าหมายให้มากกว่า 0");
+      return;
+    }
+    if (endDate < startDate) {
+      toast.error("วันสิ้นสุดต้องไม่มาก่อนวันเริ่ม");
+      return;
+    }
+
 
     create.mutate(
       {
