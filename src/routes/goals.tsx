@@ -193,6 +193,8 @@ function Goals() {
         title="เป้าหมายของฉัน"
         subtitle={`น้ำหนักที่ใช้คำนวณ ${weight} กก.`}
         streak={profile?.streak_days ?? 0}
+        avatarUrl={profile?.picture_url ?? null}
+        avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ผู้ใช้"}
       />
 
       <section className="card-soft mb-4 p-4">
