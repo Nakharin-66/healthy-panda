@@ -109,6 +109,7 @@ function Profile() {
   const updateProfile = useUpdateProfile();
   const updateSettings = useUpdateSettings(profile?.id);
   const uploadAvatar = useUploadAvatar(profile?.id);
+  const deleteAvatar = useDeleteAvatar(profile?.id);
   const resolvedAvatar = useResolvedAvatar(profile?.picture_url);
 
   const theme = normalizeTheme(settings?.theme);
@@ -120,6 +121,7 @@ function Profile() {
   const [weightGoalOpen, setWeightGoalOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [removePhotoOpen, setRemovePhotoOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     birthday: "",
