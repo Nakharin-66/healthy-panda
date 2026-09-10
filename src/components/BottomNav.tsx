@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ScanLine, MessageCircleHeart, Trophy, Target, User } from "lucide-react";
+import { Home, ScanLine, MessageCircleHeart, Trophy, Users, User } from "lucide-react";
 
 const tabs = [
   { to: "/dashboard", label: "แดชบอร์ด", icon: Home },
   { to: "/scan", label: "สแกน", icon: ScanLine },
   { to: "/coach", label: "โค้ช", icon: MessageCircleHeart },
   { to: "/leaderboard", label: "อันดับ", icon: Trophy },
-  { to: "/goals", label: "เป้าหมาย", icon: Target },
+  { to: "/friends", label: "เพื่อน", icon: Users },
   { to: "/profile", label: "บัญชี", icon: User },
 ] as const;
+
 
 export function BottomNav() {
   return (
