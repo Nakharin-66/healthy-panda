@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
+import { Route as FriendsProfileIdRouteImport } from './routes/friends.$profileId'
 import { Route as ApiPublicHealthConnectIngestRouteImport } from './routes/api/public/health-connect/ingest'
 
 const IndexRoute = IndexRouteImport.update({
@@ -38,6 +40,11 @@ const CoachRoute = CoachRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoalsRoute = GoalsRouteImport.update({
@@ -65,6 +72,11 @@ const ScanRoute = ScanRouteImport.update({
   path: '/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FriendsProfileIdRoute = FriendsProfileIdRouteImport.update({
+  id: '/$profileId',
+  path: '/$profileId',
+  getParentRoute: () => FriendsRoute,
+} as any)
 const ApiPublicHealthConnectIngestRoute =
   ApiPublicHealthConnectIngestRouteImport.update({
     id: '/api/public/health-connect/ingest',
@@ -77,11 +89,13 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/coach': typeof CoachRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRoutesByTo {
@@ -89,11 +103,13 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/coach': typeof CoachRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRoutesById {
@@ -102,11 +118,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/coach': typeof CoachRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
+  '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
 export interface FileRouteTypes {
@@ -116,11 +134,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/coach'
     | '/dashboard'
+    | '/friends'
     | '/goals'
     | '/leaderboard'
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,11 +148,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/coach'
     | '/dashboard'
+    | '/friends'
     | '/goals'
     | '/leaderboard'
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   id:
     | '__root__'
@@ -140,11 +162,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/coach'
     | '/dashboard'
+    | '/friends'
     | '/goals'
     | '/leaderboard'
     | '/privacy'
     | '/profile'
     | '/scan'
+    | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesById: FileRoutesById
 }
@@ -153,6 +177,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CoachRoute: typeof CoachRoute
   DashboardRoute: typeof DashboardRoute
+  FriendsRoute: typeof FriendsRouteWithChildren
   GoalsRoute: typeof GoalsRoute
   LeaderboardRoute: typeof LeaderboardRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -191,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/goals': {
       id: '/goals'
       path: '/goals'
@@ -226,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/friends/$profileId': {
+      id: '/friends/$profileId'
+      path: '/$profileId'
+      fullPath: '/friends/$profileId'
+      preLoaderRoute: typeof FriendsProfileIdRouteImport
+      parentRoute: typeof FriendsRoute
+    }
     '/api/public/health-connect/ingest': {
       id: '/api/public/health-connect/ingest'
       path: '/api/public/health-connect/ingest'
@@ -236,11 +275,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface FriendsRouteChildren {
+  FriendsProfileIdRoute: typeof FriendsProfileIdRoute
+}
+
+const FriendsRouteChildren: FriendsRouteChildren = {
+  FriendsProfileIdRoute: FriendsProfileIdRoute,
+}
+
+const FriendsRouteWithChildren =
+  FriendsRoute._addFileChildren(FriendsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CoachRoute: CoachRoute,
   DashboardRoute: DashboardRoute,
+  FriendsRoute: FriendsRouteWithChildren,
   GoalsRoute: GoalsRoute,
   LeaderboardRoute: LeaderboardRoute,
   PrivacyRoute: PrivacyRoute,
