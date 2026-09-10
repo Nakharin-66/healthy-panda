@@ -304,6 +304,58 @@ export type Database = {
           },
         ]
       }
+      challenge_invites: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          invitee_profile_id: string
+          inviter_profile_id: string
+          status: Database["public"]["Enums"]["challenge_invite_status"]
+          updated_at: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          invitee_profile_id: string
+          inviter_profile_id: string
+          status?: Database["public"]["Enums"]["challenge_invite_status"]
+          updated_at?: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          invitee_profile_id?: string
+          inviter_profile_id?: string
+          status?: Database["public"]["Enums"]["challenge_invite_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_invites_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_invites_invitee_profile_id_fkey"
+            columns: ["invitee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_invites_inviter_profile_id_fkey"
+            columns: ["inviter_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
@@ -354,13 +406,19 @@ export type Database = {
       }
       challenges: {
         Row: {
+          category: Database["public"]["Enums"]["challenge_category"]
+          challenge_code: string
           created_at: string
           description: string | null
           end_date: string
+          goal_mode: Database["public"]["Enums"]["challenge_goal_mode"]
           icon: string | null
           id: string
           is_active: boolean
+          leaderboard_visibility: Database["public"]["Enums"]["challenge_board_visibility"]
           metric: string
+          owner_profile_id: string | null
+          participation_visibility: Database["public"]["Enums"]["challenge_participation"]
           reward_points: number
           start_date: string
           target_value: number
@@ -369,13 +427,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["challenge_category"]
+          challenge_code?: string
           created_at?: string
           description?: string | null
           end_date: string
+          goal_mode?: Database["public"]["Enums"]["challenge_goal_mode"]
           icon?: string | null
           id?: string
           is_active?: boolean
+          leaderboard_visibility?: Database["public"]["Enums"]["challenge_board_visibility"]
           metric?: string
+          owner_profile_id?: string | null
+          participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
           start_date?: string
           target_value?: number
@@ -384,13 +448,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["challenge_category"]
+          challenge_code?: string
           created_at?: string
           description?: string | null
           end_date?: string
+          goal_mode?: Database["public"]["Enums"]["challenge_goal_mode"]
           icon?: string | null
           id?: string
           is_active?: boolean
+          leaderboard_visibility?: Database["public"]["Enums"]["challenge_board_visibility"]
           metric?: string
+          owner_profile_id?: string | null
+          participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
           start_date?: string
           target_value?: number
@@ -398,7 +468,15 @@ export type Database = {
           unit?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "challenges_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_goals: {
         Row: {
@@ -1182,6 +1260,17 @@ export type Database = {
     Functions: {
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       can_view_avatar_folder: { Args: { _folder: string }; Returns: boolean }
+      can_view_challenge: { Args: { _challenge_id: string }; Returns: boolean }
+      challenge_detail: {
+        Args: { _challenge_id: string }
+        Returns: Database["public"]["CompositeTypes"]["challenge_view"][]
+        SetofOptions: {
+          from: "*"
+          to: "challenge_view"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       challenge_leaderboard: {
         Args: { _challenge_id: string; _friends_only?: boolean }
         Returns: {
@@ -1194,9 +1283,63 @@ export type Database = {
           progress: number
         }[]
       }
+      challenge_metric_daily: {
+        Args: {
+          _from: string
+          _metric: string
+          _profile_id: string
+          _to: string
+        }
+        Returns: {
+          d: string
+          v: number
+        }[]
+      }
       compute_challenge_progress: {
         Args: { _challenge_id: string; _profile_id: string }
         Returns: number
+      }
+      create_challenge: {
+        Args: {
+          _board: Database["public"]["Enums"]["challenge_board_visibility"]
+          _category: Database["public"]["Enums"]["challenge_category"]
+          _description: string
+          _end_date: string
+          _goal_mode: Database["public"]["Enums"]["challenge_goal_mode"]
+          _icon?: string
+          _metric: string
+          _participation: Database["public"]["Enums"]["challenge_participation"]
+          _start_date: string
+          _target_value: number
+          _title: string
+        }
+        Returns: {
+          category: Database["public"]["Enums"]["challenge_category"]
+          challenge_code: string
+          created_at: string
+          description: string | null
+          end_date: string
+          goal_mode: Database["public"]["Enums"]["challenge_goal_mode"]
+          icon: string | null
+          id: string
+          is_active: boolean
+          leaderboard_visibility: Database["public"]["Enums"]["challenge_board_visibility"]
+          metric: string
+          owner_profile_id: string | null
+          participation_visibility: Database["public"]["Enums"]["challenge_participation"]
+          reward_points: number
+          start_date: string
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       current_profile_id: { Args: never; Returns: string }
       friend_public_profile: {
@@ -1221,8 +1364,28 @@ export type Database = {
           pending_outgoing: number
         }[]
       }
+      generate_challenge_code: { Args: never; Returns: string }
       generate_friend_code: { Args: never; Returns: string }
+      invite_friend_to_challenge: {
+        Args: { _challenge_id: string; _friend_profile_id: string }
+        Returns: string
+      }
       join_challenge: { Args: { _challenge_id: string }; Returns: undefined }
+      leave_challenge: { Args: { _challenge_id: string }; Returns: undefined }
+      list_challenge_invites: {
+        Args: never
+        Returns: {
+          challenge_code: string
+          challenge_id: string
+          challenge_title: string
+          counterpart_name: string
+          counterpart_picture: string
+          created_at: string
+          direction: string
+          id: string
+          status: Database["public"]["Enums"]["challenge_invite_status"]
+        }[]
+      }
       list_friend_requests: {
         Args: never
         Returns: {
@@ -1246,6 +1409,26 @@ export type Database = {
           since: string
         }[]
       }
+      list_visible_challenges: {
+        Args: never
+        Returns: Database["public"]["CompositeTypes"]["challenge_view"][]
+        SetofOptions: {
+          from: "*"
+          to: "challenge_view"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      lookup_challenge_code: {
+        Args: { _code: string }
+        Returns: Database["public"]["CompositeTypes"]["challenge_view"][]
+        SetofOptions: {
+          from: "*"
+          to: "challenge_view"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       lookup_friend_code: {
         Args: { _code: string }
         Returns: {
@@ -1264,6 +1447,10 @@ export type Database = {
         Args: { _friend_profile_id: string }
         Returns: undefined
       }
+      respond_challenge_invite: {
+        Args: { _action: string; _invite_id: string }
+        Returns: undefined
+      }
       respond_friend_request: {
         Args: { _action: string; _request_id: string }
         Returns: undefined
@@ -1278,6 +1465,16 @@ export type Database = {
         | "moderate"
         | "active"
         | "very_active"
+      challenge_board_visibility: "everyone" | "friends" | "participants"
+      challenge_category:
+        | "movement"
+        | "exercise"
+        | "water"
+        | "wellness"
+        | "custom"
+      challenge_goal_mode: "daily" | "cumulative"
+      challenge_invite_status: "pending" | "accepted" | "rejected" | "cancelled"
+      challenge_participation: "everyone" | "friends" | "invite_only"
       chat_role: "user" | "assistant" | "system"
       device_kind:
         | "smartwatch"
@@ -1319,7 +1516,36 @@ export type Database = {
       risk_level: "low" | "medium" | "high"
     }
     CompositeTypes: {
-      [_ in never]: never
+      challenge_view: {
+        id: string | null
+        title: string | null
+        description: string | null
+        icon: string | null
+        challenge_code: string | null
+        category: Database["public"]["Enums"]["challenge_category"] | null
+        metric: string | null
+        target_value: number | null
+        unit: string | null
+        goal_mode: Database["public"]["Enums"]["challenge_goal_mode"] | null
+        start_date: string | null
+        end_date: string | null
+        reward_points: number | null
+        participation_visibility:
+          | Database["public"]["Enums"]["challenge_participation"]
+          | null
+        leaderboard_visibility:
+          | Database["public"]["Enums"]["challenge_board_visibility"]
+          | null
+        owner_profile_id: string | null
+        owner_name: string | null
+        owner_picture: string | null
+        is_owner: boolean | null
+        participant_count: number | null
+        joined: boolean | null
+        my_progress: number | null
+        my_completed: boolean | null
+        invited: boolean | null
+      }
     }
   }
 }
@@ -1451,6 +1677,17 @@ export const Constants = {
         "active",
         "very_active",
       ],
+      challenge_board_visibility: ["everyone", "friends", "participants"],
+      challenge_category: [
+        "movement",
+        "exercise",
+        "water",
+        "wellness",
+        "custom",
+      ],
+      challenge_goal_mode: ["daily", "cumulative"],
+      challenge_invite_status: ["pending", "accepted", "rejected", "cancelled"],
+      challenge_participation: ["everyone", "friends", "invite_only"],
       chat_role: ["user", "assistant", "system"],
       device_kind: [
         "smartwatch",
