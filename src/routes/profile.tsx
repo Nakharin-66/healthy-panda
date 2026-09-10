@@ -267,14 +267,16 @@ function Profile() {
     );
   };
 
-  const cyclePrivacy = () => {
-    const order = ["private", "friends", "public"] as const;
-    const current = settings?.privacy_level ?? "private";
-    const next = order[(order.indexOf(current) + 1) % order.length]!;
-    updateSettings.mutate(
-      { privacy_level: next },
-      { onError: () => toast.error("บันทึกความเป็นส่วนตัวไม่สำเร็จ") },
-    );
+  const hasUploadedPhoto = !!profile?.picture_url && !/^https?:\/\//.test(profile.picture_url);
+
+  const removePhoto = async () => {
+    try {
+      const fallback = await deleteAvatar.mutateAsync(profile?.picture_url ?? null);
+      toast.success(fallback ? "คืนค่ารูปโปรไฟล์เริ่มต้นแล้ว" : "ลบรูปโปรไฟล์แล้ว");
+      setRemovePhotoOpen(false);
+    } catch {
+      toast.error("ลบรูปโปรไฟล์ไม่สำเร็จ ลองอีกครั้ง");
+    }
   };
 
   const age = profile?.birthday
