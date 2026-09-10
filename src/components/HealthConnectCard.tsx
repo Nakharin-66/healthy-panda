@@ -185,12 +185,22 @@ export function HealthConnectCard() {
             </p>
           ) : null}
 
-          <button
-            onClick={disconnect}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-border px-4 py-2.5 text-xs font-extrabold active:scale-95"
-          >
-            <Unlink className="size-3.5" /> ยกเลิกการเชื่อมต่อ
-          </button>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => status.refetch()}
+              disabled={status.isFetching}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
+            >
+              <RefreshCw className={`size-3.5 ${status.isFetching ? "animate-spin" : ""}`} />
+              ซิงก์ข้อมูลตอนนี้
+            </button>
+            <button
+              onClick={disconnect}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-border px-4 py-2.5 text-xs font-extrabold active:scale-95"
+            >
+              <Unlink className="size-3.5" /> ยกเลิกการเชื่อมต่อ
+            </button>
+          </div>
         </>
       ) : null}
     </section>
