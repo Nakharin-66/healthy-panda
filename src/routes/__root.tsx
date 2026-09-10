@@ -128,6 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useThemeSync();
 
   return (
     <QueryClientProvider client={queryClient}>
