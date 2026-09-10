@@ -68,8 +68,8 @@ function Row({
 }: {
   icon: typeof Scale;
   label: string;
-  value?: string;
-  onClick?: () => void;
+  value?: string | undefined;
+  onClick?: (() => void) | undefined;
   right?: React.ReactNode;
 }) {
   const content = (
