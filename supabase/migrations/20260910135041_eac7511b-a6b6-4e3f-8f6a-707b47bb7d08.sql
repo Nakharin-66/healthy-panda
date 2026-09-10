@@ -1,0 +1,25 @@
+REVOKE ALL ON FUNCTION public.are_friends(uuid, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.can_view_avatar_folder(text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.friend_public_profile(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.friend_summary() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.list_friend_requests() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.list_friends() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.lookup_friend_code(text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.regenerate_friend_code() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.remove_friend(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.respond_friend_request(uuid, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.send_friend_request(text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.sync_challenge_progress() FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.are_friends(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_view_avatar_folder(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.friend_public_profile(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.friend_summary() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_friend_requests() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_friends() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.lookup_friend_code(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.regenerate_friend_code() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.remove_friend(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.respond_friend_request(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.send_friend_request(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_challenge_progress() TO authenticated;
