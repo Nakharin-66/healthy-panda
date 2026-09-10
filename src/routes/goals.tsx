@@ -518,6 +518,85 @@ function Goals() {
         editing={editingGoal}
       />
 
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-h-[85vh] max-w-[92vw] overflow-y-auto rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold">ประวัติเป้าหมายของฉัน</DialogTitle>
+            <DialogDescription className="text-xs font-semibold">
+              เป้าหมายที่เก็บเข้าคลัง — คืนค่ากลับมาใช้ต่อ หรือลบถาวรได้
+            </DialogDescription>
+          </DialogHeader>
+          {archivedLoading ? (
+            <Skeleton className="h-20 rounded-3xl" />
+          ) : (archivedGoals ?? []).length === 0 ? (
+            <p className="py-6 text-center text-xs font-semibold text-muted-foreground">ยังไม่มีเป้าหมายในคลัง</p>
+          ) : (
+            <div className="space-y-2">
+              {(archivedGoals ?? []).map((g) => {
+                const p = goalProgress(g, allLogs);
+                return (
+                  <article key={g.id} className="rounded-2xl bg-secondary p-3">
+                    <p className="truncate text-sm font-extrabold">{g.name}</p>
+                    <p className="text-[11px] font-bold text-muted-foreground">
+                      {p.value.toLocaleString("th-TH")} / {Number(g.target_value).toLocaleString("th-TH")} {g.unit} •{" "}
+                      {p.done ? "สำเร็จ 🎉" : `${p.pct}% (ยังไม่สำเร็จ)`} •{" "}
+                      {new Date(g.end_date).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() =>
+                          restoreGoal
+                            .mutateAsync(g.id)
+                            .then(() => toast.success("คืนค่าเป้าหมายแล้ว"))
+                            .catch(() => toast.error("คืนค่าไม่สำเร็จ"))
+                        }
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary-soft py-2 text-[11px] font-extrabold text-primary"
+                      >
+                        <RotateCcw className="size-3" /> คืนค่า
+                      </button>
+                      <button
+                        onClick={() => setPendingGoalDelete(g)}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-background py-2 text-[11px] font-extrabold text-destructive"
+                      >
+                        <Trash2 className="size-3" /> ลบถาวร
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!pendingGoalDelete} onOpenChange={(v) => !v && setPendingGoalDelete(null)}>
+        <AlertDialogContent className="max-w-[90vw] rounded-3xl sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-extrabold">ลบเป้าหมายนี้ถาวร?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-semibold">
+              “{pendingGoalDelete?.name}” จะถูกลบออกอย่างถาวร และไม่สามารถกู้คืนได้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="m-0 flex-1 rounded-2xl text-sm font-extrabold">ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const target = pendingGoalDelete;
+                setPendingGoalDelete(null);
+                if (!target) return;
+                deleteGoal
+                  .mutateAsync(target.id)
+                  .then(() => toast.success("ลบเป้าหมายถาวรแล้ว"))
+                  .catch(() => toast.error("ลบไม่สำเร็จ"));
+              }}
+              className="m-0 flex-1 rounded-2xl bg-destructive text-sm font-extrabold text-destructive-foreground"
+            >
+              ลบถาวร
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!pendingDelete} onOpenChange={(v) => !v && setPendingDelete(null)}>
         <AlertDialogContent className="max-w-[90vw] rounded-3xl sm:max-w-sm">
           <AlertDialogHeader>
