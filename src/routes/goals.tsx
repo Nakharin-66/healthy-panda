@@ -331,15 +331,24 @@ function Goals() {
 
       {tab === "goals" ? (
         <section className="space-y-2.5">
-          <button
-            onClick={() => {
-              setEditingGoal(null);
-              setGoalDialog(true);
-            }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-[0.98]"
-          >
-            <Plus className="size-4" /> สร้างเป้าหมาย
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setEditingGoal(null);
+                setGoalDialog(true);
+              }}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-[0.98]"
+            >
+              <Plus className="size-4" /> สร้างเป้าหมาย
+            </button>
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-2xl bg-primary-soft px-4 py-3 text-sm font-extrabold text-primary active:scale-[0.98]"
+            >
+              <History className="size-4" /> ประวัติ
+              {(archivedGoals ?? []).length > 0 ? ` (${(archivedGoals ?? []).length})` : ""}
+            </button>
+          </div>
 
           {goalsLoading ? (
             <Skeleton className="h-24 rounded-3xl" />
@@ -350,6 +359,7 @@ function Goals() {
           ) : (
             (goals ?? []).map((g) => {
               const p = goalProgress(g, allLogs);
+              const d = goalDeadline(g);
               return (
                 <article key={g.id} className="card-soft p-4 duration-300 animate-in fade-in">
                   <div className="mb-1.5 flex items-start gap-2">
@@ -372,6 +382,22 @@ function Goals() {
                       style={{ width: `${p.pct}%` }}
                     />
                   </div>
+
+                  {d.expired ? (
+                    <p className="mt-2 flex items-center gap-1.5 rounded-2xl bg-destructive/10 px-3 py-2 text-[11px] font-extrabold text-destructive">
+                      <AlertTriangle className="size-3.5 shrink-0" />
+                      เลยวันที่กำหนดไว้แล้ว {d.daysOverdue.toLocaleString("th-TH")} วัน —{" "}
+                      {p.done ? "สำเร็จแล้ว เก็บเข้าคลังได้เลย" : "แก้ไขวันสิ้นสุด หรือเก็บเข้าคลัง"}
+                    </p>
+                  ) : (
+                    <p className="mt-2 flex items-center gap-1.5 rounded-2xl bg-primary-soft px-3 py-2 text-[11px] font-extrabold text-primary">
+                      <Clock className="size-3.5 shrink-0" />
+                      {d.isLastDay
+                        ? "วันนี้เป็นวันสุดท้ายของเป้าหมายนี้"
+                        : `เหลืออีก ${d.daysLeft.toLocaleString("th-TH")} วัน`}
+                    </p>
+                  )}
+
                   <div className="mt-2.5 flex gap-2">
                     <button
                       onClick={() => {
@@ -386,12 +412,19 @@ function Goals() {
                       onClick={() =>
                         archiveGoal
                           .mutateAsync(g.id)
-                          .then(() => toast.success("เก็บเป้าหมายเข้าคลังแล้ว"))
+                          .then(() => toast.success("เก็บเข้าประวัติเป้าหมายของฉันแล้ว"))
                           .catch(() => toast.error("ทำรายการไม่สำเร็จ"))
                       }
-                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-secondary py-2 text-[11px] font-extrabold text-destructive"
+                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-secondary py-2 text-[11px] font-extrabold text-primary"
                     >
-                      <Undo2 className="size-3" /> เก็บเข้าคลัง
+                      <Archive className="size-3" /> เก็บเข้าคลัง
+                    </button>
+                    <button
+                      aria-label="ลบเป้าหมาย"
+                      onClick={() => setPendingGoalDelete(g)}
+                      className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-destructive active:scale-95"
+                    >
+                      <Trash2 className="size-4" />
                     </button>
                   </div>
                 </article>
