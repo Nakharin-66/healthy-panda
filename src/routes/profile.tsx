@@ -586,12 +586,24 @@ function Profile() {
           value={settingValue(THEME_LABEL[theme])}
           onClick={cycleTheme}
         />
-        <Row
-          icon={Shield}
-          label="ความเป็นส่วนตัว"
-          value={settingValue(privacyLabel[settings?.privacy_level ?? "private"])}
-          onClick={cyclePrivacy}
-        />
+        <button
+          onClick={() => navigate({ to: "/privacy" })}
+          className="flex w-full items-center gap-3 px-3 py-3.5 text-left"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+            <Shield className="size-4.5" strokeWidth={2.3} />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-extrabold">ความเป็นส่วนตัว</span>
+            <span className="mt-0.5 block text-[11px] font-bold text-muted-foreground">
+              จัดการว่าใครสามารถเห็นข้อมูลของคุณ
+            </span>
+          </span>
+          <span className="text-xs font-bold text-muted-foreground">
+            {settingValue(privacyLabel[settings?.privacy_level ?? "private"])}
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
         <Row icon={LogOut} label="ออกจากระบบ" onClick={() => setSignOutOpen(true)} />
       </section>
     </AppScreen>
