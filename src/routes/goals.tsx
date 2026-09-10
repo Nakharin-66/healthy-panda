@@ -31,9 +31,13 @@ import {
   useActivityLogs,
   useActivityRealtime,
   useActivityTypes,
+  goalDeadline,
   useArchiveGoal,
+  useArchivedGoals,
   useDeleteActivityType,
+  useDeleteGoal,
   useExerciseGoals,
+  useRestoreGoal,
   useSoftDeleteActivityLog,
   type ActivityLog,
   type ActivityType,
@@ -41,13 +45,23 @@ import {
   type ExerciseGoal,
 } from "@/lib/activities";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertTriangle,
+  Archive,
   Dumbbell,
   Flame,
+  History,
   Pencil,
   Plus,
+  RotateCcw,
   Target,
   Trash2,
-  Undo2,
   Clock,
   Route as Route2,
 } from "lucide-react";
