@@ -31,9 +31,13 @@ import {
   useActivityLogs,
   useActivityRealtime,
   useActivityTypes,
+  goalDeadline,
   useArchiveGoal,
+  useArchivedGoals,
   useDeleteActivityType,
+  useDeleteGoal,
   useExerciseGoals,
+  useRestoreGoal,
   useSoftDeleteActivityLog,
   type ActivityLog,
   type ActivityType,
@@ -41,13 +45,23 @@ import {
   type ExerciseGoal,
 } from "@/lib/activities";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertTriangle,
+  Archive,
   Dumbbell,
   Flame,
+  History,
   Pencil,
   Plus,
+  RotateCcw,
   Target,
   Trash2,
-  Undo2,
   Clock,
   Route as Route2,
 } from "lucide-react";
@@ -87,6 +101,9 @@ function Goals() {
   const softDelete = useSoftDeleteActivityLog();
   const deleteType = useDeleteActivityType();
   const archiveGoal = useArchiveGoal();
+  const restoreGoal = useRestoreGoal();
+  const deleteGoal = useDeleteGoal();
+  const { data: archivedGoals, isLoading: archivedLoading } = useArchivedGoals(profileId);
 
   const [tab, setTab] = useState<Tab>("logs");
   const [typeDialog, setTypeDialog] = useState(false);
@@ -96,6 +113,8 @@ function Goals() {
   const [goalDialog, setGoalDialog] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ExerciseGoal | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ActivityLog | null>(null);
+  const [pendingGoalDelete, setPendingGoalDelete] = useState<ExerciseGoal | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const allLogs = logs ?? [];
   const allTypes = types ?? [];
@@ -174,6 +193,8 @@ function Goals() {
         title="เป้าหมายของฉัน"
         subtitle={`น้ำหนักที่ใช้คำนวณ ${weight} กก.`}
         streak={profile?.streak_days ?? 0}
+        avatarUrl={profile?.picture_url ?? null}
+        avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ผู้ใช้"}
       />
 
       <section className="card-soft mb-4 p-4">
@@ -310,15 +331,24 @@ function Goals() {
 
       {tab === "goals" ? (
         <section className="space-y-2.5">
-          <button
-            onClick={() => {
-              setEditingGoal(null);
-              setGoalDialog(true);
-            }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-[0.98]"
-          >
-            <Plus className="size-4" /> สร้างเป้าหมาย
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setEditingGoal(null);
+                setGoalDialog(true);
+              }}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-[0.98]"
+            >
+              <Plus className="size-4" /> สร้างเป้าหมาย
+            </button>
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-2xl bg-primary-soft px-4 py-3 text-sm font-extrabold text-primary active:scale-[0.98]"
+            >
+              <History className="size-4" /> ประวัติ
+              {(archivedGoals ?? []).length > 0 ? ` (${(archivedGoals ?? []).length})` : ""}
+            </button>
+          </div>
 
           {goalsLoading ? (
             <Skeleton className="h-24 rounded-3xl" />
@@ -329,6 +359,7 @@ function Goals() {
           ) : (
             (goals ?? []).map((g) => {
               const p = goalProgress(g, allLogs);
+              const d = goalDeadline(g);
               return (
                 <article key={g.id} className="card-soft p-4 duration-300 animate-in fade-in">
                   <div className="mb-1.5 flex items-start gap-2">
@@ -351,6 +382,22 @@ function Goals() {
                       style={{ width: `${p.pct}%` }}
                     />
                   </div>
+
+                  {d.expired ? (
+                    <p className="mt-2 flex items-center gap-1.5 rounded-2xl bg-destructive/10 px-3 py-2 text-[11px] font-extrabold text-destructive">
+                      <AlertTriangle className="size-3.5 shrink-0" />
+                      เลยวันที่กำหนดไว้แล้ว {d.daysOverdue.toLocaleString("th-TH")} วัน —{" "}
+                      {p.done ? "สำเร็จแล้ว เก็บเข้าคลังได้เลย" : "แก้ไขวันสิ้นสุด หรือเก็บเข้าคลัง"}
+                    </p>
+                  ) : (
+                    <p className="mt-2 flex items-center gap-1.5 rounded-2xl bg-primary-soft px-3 py-2 text-[11px] font-extrabold text-primary">
+                      <Clock className="size-3.5 shrink-0" />
+                      {d.isLastDay
+                        ? "วันนี้เป็นวันสุดท้ายของเป้าหมายนี้"
+                        : `เหลืออีก ${d.daysLeft.toLocaleString("th-TH")} วัน`}
+                    </p>
+                  )}
+
                   <div className="mt-2.5 flex gap-2">
                     <button
                       onClick={() => {
@@ -365,12 +412,19 @@ function Goals() {
                       onClick={() =>
                         archiveGoal
                           .mutateAsync(g.id)
-                          .then(() => toast.success("เก็บเป้าหมายเข้าคลังแล้ว"))
+                          .then(() => toast.success("เก็บเข้าประวัติเป้าหมายของฉันแล้ว"))
                           .catch(() => toast.error("ทำรายการไม่สำเร็จ"))
                       }
-                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-secondary py-2 text-[11px] font-extrabold text-destructive"
+                      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-secondary py-2 text-[11px] font-extrabold text-primary"
                     >
-                      <Undo2 className="size-3" /> เก็บเข้าคลัง
+                      <Archive className="size-3" /> เก็บเข้าคลัง
+                    </button>
+                    <button
+                      aria-label="ลบเป้าหมาย"
+                      onClick={() => setPendingGoalDelete(g)}
+                      className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-destructive active:scale-95"
+                    >
+                      <Trash2 className="size-4" />
                     </button>
                   </div>
                 </article>
@@ -463,6 +517,85 @@ function Goals() {
         profileId={profileId}
         editing={editingGoal}
       />
+
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-h-[85vh] max-w-[92vw] overflow-y-auto rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold">ประวัติเป้าหมายของฉัน</DialogTitle>
+            <DialogDescription className="text-xs font-semibold">
+              เป้าหมายที่เก็บเข้าคลัง — คืนค่ากลับมาใช้ต่อ หรือลบถาวรได้
+            </DialogDescription>
+          </DialogHeader>
+          {archivedLoading ? (
+            <Skeleton className="h-20 rounded-3xl" />
+          ) : (archivedGoals ?? []).length === 0 ? (
+            <p className="py-6 text-center text-xs font-semibold text-muted-foreground">ยังไม่มีเป้าหมายในคลัง</p>
+          ) : (
+            <div className="space-y-2">
+              {(archivedGoals ?? []).map((g) => {
+                const p = goalProgress(g, allLogs);
+                return (
+                  <article key={g.id} className="rounded-2xl bg-secondary p-3">
+                    <p className="truncate text-sm font-extrabold">{g.name}</p>
+                    <p className="text-[11px] font-bold text-muted-foreground">
+                      {p.value.toLocaleString("th-TH")} / {Number(g.target_value).toLocaleString("th-TH")} {g.unit} •{" "}
+                      {p.done ? "สำเร็จ 🎉" : `${p.pct}% (ยังไม่สำเร็จ)`} •{" "}
+                      {new Date(g.end_date).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() =>
+                          restoreGoal
+                            .mutateAsync(g.id)
+                            .then(() => toast.success("คืนค่าเป้าหมายแล้ว"))
+                            .catch(() => toast.error("คืนค่าไม่สำเร็จ"))
+                        }
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary-soft py-2 text-[11px] font-extrabold text-primary"
+                      >
+                        <RotateCcw className="size-3" /> คืนค่า
+                      </button>
+                      <button
+                        onClick={() => setPendingGoalDelete(g)}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-background py-2 text-[11px] font-extrabold text-destructive"
+                      >
+                        <Trash2 className="size-3" /> ลบถาวร
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!pendingGoalDelete} onOpenChange={(v) => !v && setPendingGoalDelete(null)}>
+        <AlertDialogContent className="max-w-[90vw] rounded-3xl sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-extrabold">ลบเป้าหมายนี้ถาวร?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-semibold">
+              “{pendingGoalDelete?.name}” จะถูกลบออกอย่างถาวร และไม่สามารถกู้คืนได้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2">
+            <AlertDialogCancel className="m-0 flex-1 rounded-2xl text-sm font-extrabold">ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const target = pendingGoalDelete;
+                setPendingGoalDelete(null);
+                if (!target) return;
+                deleteGoal
+                  .mutateAsync(target.id)
+                  .then(() => toast.success("ลบเป้าหมายถาวรแล้ว"))
+                  .catch(() => toast.error("ลบไม่สำเร็จ"));
+              }}
+              className="m-0 flex-1 rounded-2xl bg-destructive text-sm font-extrabold text-destructive-foreground"
+            >
+              ลบถาวร
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(v) => !v && setPendingDelete(null)}>
         <AlertDialogContent className="max-w-[90vw] rounded-3xl sm:max-w-sm">

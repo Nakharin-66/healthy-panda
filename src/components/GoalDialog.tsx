@@ -193,6 +193,19 @@ export function GoalDialog({
               />
             </label>
           </div>
+          {new Date(end) < new Date(isoDate(new Date())) ? (
+            <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-[11px] font-extrabold text-destructive">
+              วันสิ้นสุดเลยวันที่กำหนดไว้แล้ว — เลื่อนวันสิ้นสุดออกไปเพื่อทำต่อ
+            </p>
+          ) : (
+            <p className="rounded-2xl bg-primary-soft px-3 py-2 text-[11px] font-extrabold text-primary">
+              เหลืออีก{" "}
+              {Math.round(
+                (new Date(end).getTime() - new Date(isoDate(new Date())).getTime()) / 86_400_000,
+              ).toLocaleString("th-TH")}{" "}
+              วัน ก่อนถึงวันสิ้นสุด
+            </p>
+          )}
         </div>
 
         <DialogFooter className="flex-row gap-2">

@@ -402,8 +402,75 @@ export function useArchiveGoal() {
       const { error } = await supabase.from("exercise_goals").update({ status: "archived" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["exercise_goals"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["exercise_goals"] });
+      qc.invalidateQueries({ queryKey: ["exercise_goals_archived"] });
+    },
   });
+}
+
+/** Archived goals = "ประวัติเป้าหมายของฉัน" (goal history / คลัง). */
+export function useArchivedGoals(profileId?: string) {
+  return useQuery({
+    queryKey: ["exercise_goals_archived", profileId],
+    enabled: !!profileId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercise_goals")
+        .select("*")
+        .eq("profile_id", profileId!)
+        .eq("status", "archived")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useRestoreGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("exercise_goals").update({ status: "active" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["exercise_goals"] });
+      qc.invalidateQueries({ queryKey: ["exercise_goals_archived"] });
+    },
+  });
+}
+
+/** Permanent delete — removes linked progress rows first (FK). */
+export function useDeleteGoal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error: pErr } = await supabase.from("goal_progress").delete().eq("goal_id", id);
+      if (pErr) throw pErr;
+      const { error } = await supabase.from("exercise_goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["exercise_goals"] });
+      qc.invalidateQueries({ queryKey: ["exercise_goals_archived"] });
+    },
+  });
+}
+
+/** Days left (>=0) or days overdue for a goal's end date. */
+export function goalDeadline(goal: ExerciseGoal) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(goal.end_date);
+  end.setHours(0, 0, 0, 0);
+  const diff = Math.round((end.getTime() - today.getTime()) / 86_400_000);
+  return {
+    daysLeft: diff,
+    expired: diff < 0,
+    daysOverdue: diff < 0 ? -diff : 0,
+    isLastDay: diff === 0,
+  };
 }
 
 /** Progress derived from activity logs — goals never influence calorie math. */
