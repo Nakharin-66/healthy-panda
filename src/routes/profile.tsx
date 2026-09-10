@@ -8,7 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { HealthConnectCard } from "@/components/HealthConnectCard";
 import { useProfile, useUpdateProfile, useSettings, useUpdateSettings } from "@/lib/db";
 import { useActivityLogs } from "@/lib/activities";
-import { useResolvedAvatar, useUploadAvatar, validateAvatarFile } from "@/lib/avatar";
+import {
+  useDeleteAvatar,
+  useResolvedAvatar,
+  useUploadAvatar,
+  validateAvatarFile,
+} from "@/lib/avatar";
 import { THEME_LABEL, normalizeTheme, storeTheme, useThemeSync, type ThemePref } from "@/lib/theme";
 import avatarFallback from "@/assets/panda-avatar.png";
 import {
@@ -21,6 +26,7 @@ import {
   LogOut,
   Camera,
   Loader2,
+  Trash2,
   X,
 } from "lucide-react";
 
