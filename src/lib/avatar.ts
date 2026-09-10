@@ -49,6 +49,32 @@ export function useResolvedAvatar(pictureUrl?: string | null) {
   return url;
 }
 
+/**
+ * Removes the user-uploaded avatar and falls back to the picture that came
+ * with the account (Google avatar) or the built-in panda avatar.
+ */
+export function useDeleteAvatar(profileId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (currentPath?: string | null) => {
+      if (!profileId) throw new Error("no profile");
+      const { data: auth } = await supabase.auth.getUser();
+      const fallback = (auth.user?.user_metadata?.["avatar_url"] as string | undefined) ?? null;
+
+      if (currentPath && !/^https?:\/\//.test(currentPath)) {
+        await supabase.storage.from(AVATAR_BUCKET).remove([currentPath]);
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({ picture_url: fallback })
+        .eq("id", profileId);
+      if (error) throw error;
+      return fallback;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
+}
+
 export function useUploadAvatar(profileId?: string) {
   const qc = useQueryClient();
   return useMutation({
