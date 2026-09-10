@@ -110,6 +110,8 @@ function Goals() {
   const [goalDialog, setGoalDialog] = useState(false);
   const [editingGoal, setEditingGoal] = useState<ExerciseGoal | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ActivityLog | null>(null);
+  const [pendingGoalDelete, setPendingGoalDelete] = useState<ExerciseGoal | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const allLogs = logs ?? [];
   const allTypes = types ?? [];
