@@ -1,3 +1,4 @@
+import { useState } from "react";
 import avatar from "@/assets/panda-avatar.png";
 import { Flame } from "lucide-react";
 
