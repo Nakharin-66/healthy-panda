@@ -360,9 +360,12 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean
+          metric: string
           reward_points: number
           start_date: string
+          target_value: number
           title: string
+          unit: string
           updated_at: string
         }
         Insert: {
@@ -372,9 +375,12 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean
+          metric?: string
           reward_points?: number
           start_date?: string
+          target_value?: number
           title: string
+          unit?: string
           updated_at?: string
         }
         Update: {
@@ -384,9 +390,12 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean
+          metric?: string
           reward_points?: number
           start_date?: string
+          target_value?: number
           title?: string
+          unit?: string
           updated_at?: string
         }
         Relationships: []
@@ -706,6 +715,87 @@ export type Database = {
           },
         ]
       }
+      friend_requests: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_profile_id: string
+          sender_profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_profile_id: string
+          sender_profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_profile_id?: string
+          sender_profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_requests_receiver_profile_id_fkey"
+            columns: ["receiver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_requests_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          friend_profile_id: string
+          id: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          friend_profile_id: string
+          id?: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          friend_profile_id?: string
+          id?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_friend_profile_id_fkey"
+            columns: ["friend_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_progress: {
         Row: {
           created_at: string
@@ -912,6 +1002,7 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
+          friend_code: string
           gender: Database["public"]["Enums"]["gender"]
           height_cm: number | null
           id: string
@@ -931,6 +1022,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          friend_code?: string
           gender?: Database["public"]["Enums"]["gender"]
           height_cm?: number | null
           id?: string
@@ -950,6 +1042,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          friend_code?: string
           gender?: Database["public"]["Enums"]["gender"]
           height_cm?: number | null
           id?: string
@@ -1087,7 +1180,95 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      challenge_leaderboard: {
+        Args: { _challenge_id: string; _friends_only?: boolean }
+        Returns: {
+          completed: boolean
+          display_name: string
+          is_friend: boolean
+          is_self: boolean
+          picture_url: string
+          profile_id: string
+          progress: number
+        }[]
+      }
+      compute_challenge_progress: {
+        Args: { _challenge_id: string; _profile_id: string }
+        Returns: number
+      }
       current_profile_id: { Args: never; Returns: string }
+      friend_public_profile: {
+        Args: { _profile_id: string }
+        Returns: {
+          activity_count: number
+          challenge_count: number
+          display_name: string
+          friend_code: string
+          picture_url: string
+          privacy_level: Database["public"]["Enums"]["privacy_level"]
+          profile_id: string
+          streak_days: number
+          visible: boolean
+        }[]
+      }
+      friend_summary: {
+        Args: never
+        Returns: {
+          friend_count: number
+          pending_incoming: number
+          pending_outgoing: number
+        }[]
+      }
+      generate_friend_code: { Args: never; Returns: string }
+      join_challenge: { Args: { _challenge_id: string }; Returns: undefined }
+      list_friend_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          direction: string
+          display_name: string
+          friend_code: string
+          id: string
+          picture_url: string
+          profile_id: string
+        }[]
+      }
+      list_friends: {
+        Args: never
+        Returns: {
+          display_name: string
+          friend_code: string
+          picture_url: string
+          privacy_level: Database["public"]["Enums"]["privacy_level"]
+          profile_id: string
+          since: string
+        }[]
+      }
+      lookup_friend_code: {
+        Args: { _code: string }
+        Returns: {
+          display_name: string
+          friend_code: string
+          is_friend: boolean
+          is_self: boolean
+          picture_url: string
+          privacy_level: Database["public"]["Enums"]["privacy_level"]
+          profile_id: string
+          request_status: string
+        }[]
+      }
+      regenerate_friend_code: { Args: never; Returns: string }
+      remove_friend: {
+        Args: { _friend_profile_id: string }
+        Returns: undefined
+      }
+      respond_friend_request: {
+        Args: { _action: string; _request_id: string }
+        Returns: undefined
+      }
+      send_friend_request: { Args: { _code: string }; Returns: string }
+      sync_challenge_progress: { Args: never; Returns: undefined }
     }
     Enums: {
       activity_level:
