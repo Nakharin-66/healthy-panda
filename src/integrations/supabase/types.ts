@@ -1181,6 +1181,7 @@ export type Database = {
     }
     Functions: {
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_view_avatar_folder: { Args: { _folder: string }; Returns: boolean }
       challenge_leaderboard: {
         Args: { _challenge_id: string; _friends_only?: boolean }
         Returns: {

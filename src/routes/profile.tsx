@@ -14,6 +14,7 @@ import {
   useUploadAvatar,
   validateAvatarFile,
 } from "@/lib/avatar";
+import { useFriendRealtime, useFriendSummary, useRegenerateFriendCode } from "@/lib/friends";
 import { THEME_LABEL, normalizeTheme, storeTheme, useThemeSync, type ThemePref } from "@/lib/theme";
 import avatarFallback from "@/assets/panda-avatar.png";
 import {
@@ -28,7 +29,11 @@ import {
   Loader2,
   Trash2,
   X,
+  Copy,
+  RefreshCw,
+  Users,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -111,6 +116,10 @@ function Profile() {
   const uploadAvatar = useUploadAvatar(profile?.id);
   const deleteAvatar = useDeleteAvatar(profile?.id);
   const resolvedAvatar = useResolvedAvatar(profile?.picture_url);
+  const friendSummary = useFriendSummary(signedIn);
+  const regenerate = useRegenerateFriendCode();
+  useFriendRealtime(signedIn);
+
 
   const theme = normalizeTheme(settings?.theme);
   useThemeSync(settingsQuery.isSuccess ? theme : undefined);
@@ -582,6 +591,68 @@ function Profile() {
           onClick={() => navigate({ to: "/goals" })}
         />
       </section>
+
+      <h2 className="mb-2 px-1 text-sm font-extrabold text-muted-foreground">เพื่อน</h2>
+      <section className="card-soft mb-4 p-4">
+        <p className="text-xs font-extrabold text-muted-foreground">รหัสเพื่อนของคุณ</p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="flex-1 text-lg font-black tracking-wider text-primary">
+            {profile?.friend_code ?? "—"}
+          </p>
+          <button
+            aria-label="คัดลอกรหัสเพื่อน"
+            disabled={!profile?.friend_code}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(profile!.friend_code);
+                toast.success("คัดลอกรหัสเพื่อนแล้ว");
+              } catch {
+                toast.error("คัดลอกไม่สำเร็จ");
+              }
+            }}
+            className="grid size-9 place-items-center rounded-xl bg-primary-soft text-primary disabled:opacity-50"
+          >
+            <Copy className="size-4" />
+          </button>
+          <button
+            aria-label="สร้างรหัสเพื่อนใหม่"
+            disabled={regenerate.isPending}
+            onClick={() =>
+              regenerate.mutate(undefined, {
+                onSuccess: () => toast.success("สร้างรหัสเพื่อนใหม่แล้ว"),
+                onError: () => toast.error("สร้างรหัสใหม่ไม่สำเร็จ"),
+              })
+            }
+            className="grid size-9 place-items-center rounded-xl bg-primary-soft text-primary disabled:opacity-50"
+          >
+            {regenerate.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+          </button>
+        </div>
+        <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+          แชร์รหัสนี้ให้เพื่อนเพื่อเพิ่มกันเป็นเพื่อน (สูงสุด 50 คน)
+        </p>
+        <button
+          onClick={() => navigate({ to: "/friends" })}
+          className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-extrabold text-primary-foreground"
+        >
+          <Users className="size-4" /> เพื่อนของฉัน
+          <span className="ml-auto flex items-center gap-2">
+            {friendSummary.data?.pending_incoming ? (
+              <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-black text-primary">
+                {friendSummary.data.pending_incoming} คำขอ
+              </span>
+            ) : null}
+            {friendSummary.data?.friend_count ?? 0} คน
+          </span>
+          <ChevronRight className="size-4" />
+        </button>
+      </section>
+
+
 
       <h2 className="mb-2 px-1 text-sm font-extrabold text-muted-foreground">เชื่อมต่อแอปสุขภาพ</h2>
       <div className="mb-4">
