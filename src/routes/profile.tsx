@@ -14,6 +14,7 @@ import {
   useUploadAvatar,
   validateAvatarFile,
 } from "@/lib/avatar";
+import { useFriendRealtime, useFriendSummary, useRegenerateFriendCode } from "@/lib/friends";
 import { THEME_LABEL, normalizeTheme, storeTheme, useThemeSync, type ThemePref } from "@/lib/theme";
 import avatarFallback from "@/assets/panda-avatar.png";
 import {
@@ -28,7 +29,11 @@ import {
   Loader2,
   Trash2,
   X,
+  Copy,
+  RefreshCw,
+  Users,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -111,6 +116,10 @@ function Profile() {
   const uploadAvatar = useUploadAvatar(profile?.id);
   const deleteAvatar = useDeleteAvatar(profile?.id);
   const resolvedAvatar = useResolvedAvatar(profile?.picture_url);
+  const friendSummary = useFriendSummary(signedIn);
+  const regenerate = useRegenerateFriendCode();
+  useFriendRealtime(signedIn);
+
 
   const theme = normalizeTheme(settings?.theme);
   useThemeSync(settingsQuery.isSuccess ? theme : undefined);
