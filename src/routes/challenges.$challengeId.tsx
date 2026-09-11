@@ -311,43 +311,109 @@ function ChallengeDetail() {
             ) : null}
           </div>
 
+          {c.is_owner ? (
+            <div className="mt-2 flex gap-2">
+              <button
+                disabled={setStatus.isPending}
+                onClick={() =>
+                  setStatus.mutate(
+                    { id: c.id, status: c.status === "closed" ? "open" : "closed" },
+                    {
+                      onSuccess: () =>
+                        toast.success(c.status === "closed" ? "เปิดรับสมาชิกแล้ว" : "ปิดรับสมาชิกแล้ว"),
+                      onError: (e) => toast.error(challengeErrorMessage(e)),
+                    },
+                  )
+                }
+                className="flex-1 rounded-2xl bg-primary-soft py-2.5 text-xs font-extrabold text-primary disabled:opacity-60"
+              >
+                {c.status === "closed" ? "เปิดรับสมาชิกอีกครั้ง" : "ปิดรับสมาชิก"}
+              </button>
+              {c.status !== "cancelled" ? (
+                <button
+                  disabled={setStatus.isPending}
+                  onClick={() => {
+                    if (!confirm("ยกเลิกชาเลนจ์นี้หรือไม่?")) return;
+                    setStatus.mutate(
+                      { id: c.id, status: "cancelled" },
+                      {
+                        onSuccess: () => toast.success("ยกเลิกชาเลนจ์แล้ว"),
+                        onError: (e) => toast.error(challengeErrorMessage(e)),
+                      },
+                    );
+                  }}
+                  className="flex-1 rounded-2xl bg-muted py-2.5 text-xs font-extrabold text-muted-foreground disabled:opacity-60"
+                >
+                  ยกเลิกชาเลนจ์
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           {inviting && c.is_owner ? (
             <section className="card-soft mt-3 p-4">
               <p className="mb-2 text-xs font-extrabold">เชิญเพื่อนเข้าร่วม</p>
-              {(friends.data ?? []).length === 0 ? (
+              {friends.isLoading ? (
+                <p className="text-[11px] font-bold text-muted-foreground">กำลังโหลดรายชื่อเพื่อน...</p>
+              ) : (friends.data ?? []).length === 0 ? (
                 <p className="text-[11px] font-bold text-muted-foreground">
                   คุณยังไม่มีเพื่อน — เพิ่มเพื่อนด้วยรหัสเพื่อนก่อน
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {(friends.data ?? []).map((f) => (
-                    <li key={f.profile_id} className="flex items-center gap-3">
-                      <PersonAvatar
-                        pictureUrl={f.picture_url}
-                        name={f.display_name}
-                        className="size-9"
-                      />
-                      <span className="min-w-0 flex-1 truncate text-xs font-extrabold">
-                        {f.display_name}
-                      </span>
-                      <button
-                        disabled={invite.isPending}
-                        onClick={() =>
-                          invite.mutate(
-                            { challengeId: c.id, friendProfileId: f.profile_id },
-                            {
-                              onSuccess: () => toast.success("ส่งคำเชิญแล้ว"),
-                              onError: (e) => toast.error(challengeErrorMessage(e)),
-                            },
-                          )
+                <>
+                  <ul className="space-y-2">
+                    {(friends.data ?? []).map((f) => (
+                      <li key={f.profile_id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id={`inv-${f.profile_id}`}
+                          checked={picked.includes(f.profile_id)}
+                          onChange={(e) =>
+                            setPicked((prev) =>
+                              e.target.checked
+                                ? [...prev, f.profile_id]
+                                : prev.filter((id) => id !== f.profile_id),
+                            )
+                          }
+                          className="size-4 accent-[hsl(var(--primary))]"
+                        />
+                        <PersonAvatar
+                          pictureUrl={f.picture_url}
+                          name={f.display_name}
+                          className="size-9"
+                        />
+                        <label
+                          htmlFor={`inv-${f.profile_id}`}
+                          className="min-w-0 flex-1 truncate text-xs font-extrabold"
+                        >
+                          {f.display_name}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    disabled={invite.isPending || picked.length === 0}
+                    onClick={async () => {
+                      let ok = 0;
+                      let failed = 0;
+                      for (const friendProfileId of picked) {
+                        try {
+                          await invite.mutateAsync({ challengeId: c.id, friendProfileId });
+                          ok += 1;
+                        } catch {
+                          failed += 1;
                         }
-                        className="rounded-xl bg-primary px-3 py-1.5 text-[10px] font-extrabold text-primary-foreground disabled:opacity-60"
-                      >
-                        เชิญ
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                      }
+                      setPicked([]);
+                      if (ok) toast.success(`ส่งคำเชิญแล้ว ${ok} คน`);
+                      if (failed) toast.error(`ส่งไม่สำเร็จ ${failed} คน`);
+                    }}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-60"
+                  >
+                    {invite.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                    ส่งคำเชิญ {picked.length ? `(${picked.length})` : ""}
+                  </button>
+                </>
               )}
               <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
                 เพื่อนที่ได้รับคำเชิญต้องกดเข้าร่วมเองจากหน้ารายละเอียดชาเลนจ์
