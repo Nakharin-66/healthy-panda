@@ -188,7 +188,7 @@ function PortionSheet({
   onClose,
 }: {
   item: FoodItem;
-  profileId?: string;
+  profileId?: string | undefined;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
