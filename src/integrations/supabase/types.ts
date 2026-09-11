@@ -365,6 +365,7 @@ export type Database = {
           id: string
           profile_id: string
           progress: number
+          score: number
           updated_at: string
         }
         Insert: {
@@ -375,6 +376,7 @@ export type Database = {
           id?: string
           profile_id: string
           progress?: number
+          score?: number
           updated_at?: string
         }
         Update: {
@@ -385,6 +387,7 @@ export type Database = {
           id?: string
           profile_id?: string
           progress?: number
+          score?: number
           updated_at?: string
         }
         Relationships: [
@@ -416,11 +419,15 @@ export type Database = {
           id: string
           is_active: boolean
           leaderboard_visibility: Database["public"]["Enums"]["challenge_board_visibility"]
+          max_score: number
           metric: string
           owner_profile_id: string | null
           participation_visibility: Database["public"]["Enums"]["challenge_participation"]
           reward_points: number
+          scoring_type: Database["public"]["Enums"]["challenge_scoring_type"]
           start_date: string
+          status: Database["public"]["Enums"]["challenge_status"]
+          target_source: Database["public"]["Enums"]["challenge_target_source"]
           target_value: number
           title: string
           unit: string
@@ -437,11 +444,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           leaderboard_visibility?: Database["public"]["Enums"]["challenge_board_visibility"]
+          max_score?: number
           metric?: string
           owner_profile_id?: string | null
           participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
+          scoring_type?: Database["public"]["Enums"]["challenge_scoring_type"]
           start_date?: string
+          status?: Database["public"]["Enums"]["challenge_status"]
+          target_source?: Database["public"]["Enums"]["challenge_target_source"]
           target_value?: number
           title: string
           unit?: string
@@ -458,11 +469,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           leaderboard_visibility?: Database["public"]["Enums"]["challenge_board_visibility"]
+          max_score?: number
           metric?: string
           owner_profile_id?: string | null
           participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
+          scoring_type?: Database["public"]["Enums"]["challenge_scoring_type"]
           start_date?: string
+          status?: Database["public"]["Enums"]["challenge_status"]
+          target_source?: Database["public"]["Enums"]["challenge_target_source"]
           target_value?: number
           title?: string
           unit?: string
@@ -1324,11 +1339,15 @@ export type Database = {
           id: string
           is_active: boolean
           leaderboard_visibility: Database["public"]["Enums"]["challenge_board_visibility"]
+          max_score: number
           metric: string
           owner_profile_id: string | null
           participation_visibility: Database["public"]["Enums"]["challenge_participation"]
           reward_points: number
+          scoring_type: Database["public"]["Enums"]["challenge_scoring_type"]
           start_date: string
+          status: Database["public"]["Enums"]["challenge_status"]
+          target_source: Database["public"]["Enums"]["challenge_target_source"]
           target_value: number
           title: string
           unit: string
@@ -1442,7 +1461,6 @@ export type Database = {
           request_status: string
         }[]
       }
-      regenerate_friend_code: { Args: never; Returns: string }
       remove_friend: {
         Args: { _friend_profile_id: string }
         Returns: undefined
@@ -1472,9 +1490,13 @@ export type Database = {
         | "water"
         | "wellness"
         | "custom"
+        | "sleep"
       challenge_goal_mode: "daily" | "cumulative"
       challenge_invite_status: "pending" | "accepted" | "rejected" | "cancelled"
       challenge_participation: "everyone" | "friends" | "invite_only"
+      challenge_scoring_type: "daily_completion" | "progress_percentage"
+      challenge_status: "open" | "running" | "ended" | "closed" | "cancelled"
+      challenge_target_source: "fixed" | "personal_goal"
       chat_role: "user" | "assistant" | "system"
       device_kind:
         | "smartwatch"
@@ -1684,10 +1706,14 @@ export const Constants = {
         "water",
         "wellness",
         "custom",
+        "sleep",
       ],
       challenge_goal_mode: ["daily", "cumulative"],
       challenge_invite_status: ["pending", "accepted", "rejected", "cancelled"],
       challenge_participation: ["everyone", "friends", "invite_only"],
+      challenge_scoring_type: ["daily_completion", "progress_percentage"],
+      challenge_status: ["open", "running", "ended", "closed", "cancelled"],
+      challenge_target_source: ["fixed", "personal_goal"],
       chat_role: ["user", "assistant", "system"],
       device_kind: [
         "smartwatch",
