@@ -198,6 +198,28 @@ function ChallengeDetail() {
             </button>
           </section>
 
+          <section className="card-soft mt-3 p-4">
+            <p className="text-xs font-extrabold">วิธีคำนวณคะแนน</p>
+            <p className="mt-1 text-[11px] font-bold text-primary">
+              {SCORING_LABEL[c.scoring_type]}
+            </p>
+            <ul className="mt-2 space-y-1">
+              {scoringExplanation(c).map((line) => (
+                <li key={line} className="text-[11px] font-semibold text-muted-foreground">
+                  • {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs font-extrabold">ข้อมูลที่ใช้ในการคำนวณ</p>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+              {METRIC_LABEL[c.metric] ?? c.metric} —{" "}
+              {METRIC_SOURCE_LABEL[c.metric] ?? "ข้อมูลสุขภาพที่บันทึกไว้ในระบบ"}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+              ตารางอันดับแสดงเฉพาะชื่อ รูปโปรไฟล์ คะแนน และความคืบหน้า ไม่เปิดเผยข้อมูลสุขภาพอื่น
+            </p>
+          </section>
+
           {c.joined ? (
             <section className="card-soft mt-3 p-4">
               <div className="mb-1 flex items-center justify-between text-[11px] font-extrabold text-muted-foreground">
@@ -212,6 +234,15 @@ function ChallengeDetail() {
                   style={{ width: `${pct}%` }}
                 />
               </div>
+              <p className="mt-2 text-[11px] font-black text-primary">
+                {numberTH(c.my_score)} / {numberTH(c.max_score)} คะแนน
+              </p>
+              {c.my_progress <= 0 ? (
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  ยังไม่มีข้อมูลสุขภาพสำหรับคำนวณความคืบหน้า —
+                  เชื่อมต่ออุปกรณ์สุขภาพหรือบันทึกกิจกรรมก่อน
+                </p>
+              ) : null}
             </section>
           ) : null}
 
