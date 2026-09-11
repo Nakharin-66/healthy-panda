@@ -743,6 +743,72 @@ export type Database = {
           },
         ]
       }
+      food_items: {
+        Row: {
+          calories: number
+          carbs_g: number
+          category: string
+          created_at: string
+          fat_g: number
+          fiber_g: number
+          id: string
+          image_url: string | null
+          name_en: string | null
+          name_th: string
+          protein_g: number
+          serving_size: number
+          serving_unit: string
+          sodium_mg: number
+          source: string
+          source_version: string | null
+          sugar_g: number
+          supported_units: string[]
+          updated_at: string
+        }
+        Insert: {
+          calories: number
+          carbs_g?: number
+          category: string
+          created_at?: string
+          fat_g?: number
+          fiber_g?: number
+          id?: string
+          image_url?: string | null
+          name_en?: string | null
+          name_th: string
+          protein_g?: number
+          serving_size?: number
+          serving_unit: string
+          sodium_mg?: number
+          source: string
+          source_version?: string | null
+          sugar_g?: number
+          supported_units?: string[]
+          updated_at?: string
+        }
+        Update: {
+          calories?: number
+          carbs_g?: number
+          category?: string
+          created_at?: string
+          fat_g?: number
+          fiber_g?: number
+          id?: string
+          image_url?: string | null
+          name_en?: string | null
+          name_th?: string
+          protein_g?: number
+          serving_size?: number
+          serving_unit?: string
+          sodium_mg?: number
+          source?: string
+          source_version?: string | null
+          sugar_g?: number
+          supported_units?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       food_logs: {
         Row: {
           ai_confidence: number | null
@@ -751,6 +817,7 @@ export type Database = {
           created_at: string
           fat_g: number
           fiber_g: number | null
+          food_item_id: string | null
           food_name: string
           id: string
           image_url: string | null
@@ -758,7 +825,11 @@ export type Database = {
           profile_id: string
           protein_g: number
           recorded_at: string
+          serving_quantity: number
+          serving_unit: string | null
           sodium_mg: number | null
+          source: string
+          source_reference: string | null
           sugar_g: number | null
           updated_at: string
         }
@@ -769,6 +840,7 @@ export type Database = {
           created_at?: string
           fat_g?: number
           fiber_g?: number | null
+          food_item_id?: string | null
           food_name: string
           id?: string
           image_url?: string | null
@@ -776,7 +848,11 @@ export type Database = {
           profile_id: string
           protein_g?: number
           recorded_at?: string
+          serving_quantity?: number
+          serving_unit?: string | null
           sodium_mg?: number | null
+          source?: string
+          source_reference?: string | null
           sugar_g?: number | null
           updated_at?: string
         }
@@ -787,6 +863,7 @@ export type Database = {
           created_at?: string
           fat_g?: number
           fiber_g?: number | null
+          food_item_id?: string | null
           food_name?: string
           id?: string
           image_url?: string | null
@@ -794,11 +871,22 @@ export type Database = {
           profile_id?: string
           protein_g?: number
           recorded_at?: string
+          serving_quantity?: number
+          serving_unit?: string | null
           sodium_mg?: number | null
+          source?: string
+          source_reference?: string | null
           sugar_g?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "food_logs_food_item_id_fkey"
+            columns: ["food_item_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "food_logs_profile_id_fkey"
             columns: ["profile_id"]

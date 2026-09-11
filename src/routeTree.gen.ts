@@ -20,6 +20,8 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
+import { Route as FoodHistoryRouteImport } from './routes/food.history'
+import { Route as FoodSearchRouteImport } from './routes/food.search'
 import { Route as FriendsProfileIdRouteImport } from './routes/friends.$profileId'
 import { Route as ApiPublicHealthConnectIngestRouteImport } from './routes/api/public/health-connect/ingest'
 
@@ -78,6 +80,16 @@ const ChallengesChallengeIdRoute = ChallengesChallengeIdRouteImport.update({
   path: '/challenges/$challengeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FoodHistoryRoute = FoodHistoryRouteImport.update({
+  id: '/food/history',
+  path: '/food/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodSearchRoute = FoodSearchRouteImport.update({
+  id: '/food/search',
+  path: '/food/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FriendsProfileIdRoute = FriendsProfileIdRouteImport.update({
   id: '/$profileId',
   path: '/$profileId',
@@ -102,6 +114,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/food/history': typeof FoodHistoryRoute
+  '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -117,6 +131,8 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/food/history': typeof FoodHistoryRoute
+  '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -133,6 +149,8 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/food/history': typeof FoodHistoryRoute
+  '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
   '/api/public/health-connect/ingest': typeof ApiPublicHealthConnectIngestRoute
 }
@@ -150,6 +168,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/food/history'
+    | '/food/search'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesByTo: FileRoutesByTo
@@ -165,6 +185,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/food/history'
+    | '/food/search'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   id:
@@ -180,6 +202,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/food/history'
+    | '/food/search'
     | '/friends/$profileId'
     | '/api/public/health-connect/ingest'
   fileRoutesById: FileRoutesById
@@ -196,6 +220,8 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ScanRoute: typeof ScanRoute
   ChallengesChallengeIdRoute: typeof ChallengesChallengeIdRoute
+  FoodHistoryRoute: typeof FoodHistoryRoute
+  FoodSearchRoute: typeof FoodSearchRoute
   ApiPublicHealthConnectIngestRoute: typeof ApiPublicHealthConnectIngestRoute
 }
 
@@ -278,6 +304,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesChallengeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/food/history': {
+      id: '/food/history'
+      path: '/food/history'
+      fullPath: '/food/history'
+      preLoaderRoute: typeof FoodHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food/search': {
+      id: '/food/search'
+      path: '/food/search'
+      fullPath: '/food/search'
+      preLoaderRoute: typeof FoodSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/friends/$profileId': {
       id: '/friends/$profileId'
       path: '/$profileId'
@@ -318,6 +358,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ScanRoute: ScanRoute,
   ChallengesChallengeIdRoute: ChallengesChallengeIdRoute,
+  FoodHistoryRoute: FoodHistoryRoute,
+  FoodSearchRoute: FoodSearchRoute,
   ApiPublicHealthConnectIngestRoute: ApiPublicHealthConnectIngestRoute,
 }
 export const routeTree = rootRouteImport

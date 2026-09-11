@@ -1,188 +1,496 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { BottomNav } from "@/components/BottomNav";
-import { Barcode, Zap, X, BookmarkPlus, Camera } from "lucide-react";
-import { toast } from "sonner";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { AppScreen } from "@/components/BottomNav";
+import { SignInPrompt } from "@/components/SignInPrompt";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile, useAddFoodLog } from "@/lib/db";
-import type { FoodLog } from "@/lib/db";
+import { useProfile } from "@/lib/db";
+import {
+  MEAL_LABEL,
+  MEAL_ORDER,
+  guessMealType,
+  portionLabel,
+  useSaveFoodLogs,
+  type MealType,
+  type Nutrition,
+} from "@/lib/food";
+import { analyzeFoodImage } from "@/lib/food/analyze.functions";
+import { AI_DISCLAIMER, NUTRITION_SOURCE_LABEL, type FoodAnalysisResult } from "@/types/food";
+import {
+  ArrowLeft,
+  Camera,
+  ImagePlus,
+  Info,
+  Minus,
+  Plus,
+  RotateCcw,
+  ScanLine,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/scan")({
   head: () => ({
     meta: [
-      { title: "สแกนอาหารด้วย AI | Healthy Panda" },
+      { title: "สแกนอาหาร | Healthy Panda" },
       {
         name: "description",
-        content: "ถ่ายรูปอาหารไทยแล้วให้ AI วิเคราะห์แคลอรีและสารอาหารหลัก บันทึกลงไดอารี่ทันที",
+        content:
+          "ถ่ายภาพอาหารเพื่อให้ AI ช่วยระบุเมนูและประมาณคุณค่าทางโภชนาการ หรือค้นหาเมนูจากฐานข้อมูลอาหารไทย",
       },
-      { property: "og:title", content: "สแกนอาหารด้วย AI | Healthy Panda" },
+      { property: "og:title", content: "สแกนอาหาร | Healthy Panda" },
       {
         property: "og:description",
-        content: "AI วิเคราะห์อาหารไทยจากรูปภาพ พร้อมบันทึกแคลอรีลงไดอารี่",
+        content: "บันทึกอาหารได้สองวิธี: สแกนภาพด้วย AI หรือค้นหาเมนูจากฐานข้อมูลโภชนาการ",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Scanner,
+  component: ScanPage,
 });
 
-const analysis = {
-  food_name: "ผัดกะเพราหมูสับ + ไข่ดาว",
-  portion: "1 จาน (ประมาณ 380 กรัม)",
-  calories: 652,
-  protein_g: 34,
-  carbohydrates_g: 58,
-  fat_g: 29,
-  ai_confidence: 0.94,
-};
+type Step = "choose" | "camera" | "review";
 
-const meals: { key: FoodLog["meal_type"]; label: string }[] = [
-  { key: "breakfast", label: "เช้า" },
-  { key: "lunch", label: "กลางวัน" },
-  { key: "dinner", label: "เย็น" },
-  { key: "snack", label: "ว่าง" },
-];
+interface EditableRow {
+  key: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  confidence: number | null;
+  nutrition: Nutrition | null;
+  food_item_id: string | null;
+}
 
-function Scanner() {
-  const navigate = useNavigate();
-  const { signedIn } = useAuth();
+function ScanPage() {
+  const { signedIn, loading } = useAuth();
   const { data: profile } = useProfile();
-  const addFood = useAddFoodLog(profile?.id);
-  const [open, setOpen] = useState(true);
-  const [meal, setMeal] = useState<FoodLog["meal_type"]>("lunch");
+  const navigate = useNavigate();
+  const analyze = useServerFn(analyzeFoodImage);
+  const save = useSaveFoodLogs(profile?.id);
 
-  const save = async () => {
-    if (!signedIn || !profile?.id) {
-      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึก");
-      navigate({ to: "/auth" });
+  const [step, setStep] = useState<Step>("choose");
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState<FoodAnalysisResult | null>(null);
+  const [rows, setRows] = useState<EditableRow[]>([]);
+  const [meal, setMeal] = useState<MealType>(guessMealType());
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  useEffect(() => stopCamera, []);
+
+  const openCamera = async () => {
+    setCameraError(null);
+    setStep("camera");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch {
+      setCameraError("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตให้ใช้กล้อง หรือเลือกรูปจากอุปกรณ์");
+    }
+  };
+
+  const capture = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 720;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    setImage(canvas.toDataURL("image/jpeg", 0.85));
+    stopCamera();
+  };
+
+  const pickFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(String(reader.result));
+      stopCamera();
+      setStep("camera");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const retake = () => {
+    setImage(null);
+    setResult(null);
+    setRows([]);
+    void openCamera();
+  };
+
+  const confirmImage = async () => {
+    if (!image) return;
+    setAnalyzing(true);
+    try {
+      const res = await analyze({
+        data: { image_base64: image, mime_type: "image/jpeg", locale: "th-TH" },
+      });
+      setResult(res);
+      setRows(
+        res.foods.map((f, i) => ({
+          key: `${i}-${f.name}`,
+          name: f.name,
+          quantity: f.estimated_quantity,
+          unit: f.estimated_unit,
+          confidence: f.confidence,
+          nutrition: f.estimated_nutrients
+            ? {
+                calories: Math.round(f.estimated_nutrients.calories),
+                protein_g: f.estimated_nutrients.protein_g,
+                carbs_g: f.estimated_nutrients.carbs_g,
+                fat_g: f.estimated_nutrients.fat_g,
+                fiber_g: f.estimated_nutrients.fiber_g ?? 0,
+                sodium_mg: f.estimated_nutrients.sodium_mg ?? 0,
+              }
+            : null,
+          food_item_id: f.matched_food_id,
+        })),
+      );
+      setStep("review");
+    } catch {
+      toast.error("ส่งภาพไปวิเคราะห์ไม่สำเร็จ");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const saveRows = async () => {
+    const ready = rows.filter((r) => r.nutrition);
+    if (!profile?.id) {
+      toast.error("ไม่พบโปรไฟล์ผู้ใช้");
+      return;
+    }
+    if (ready.length === 0) {
+      toast.error("ยังไม่มีรายการที่มีค่าโภชนาการ กรุณาค้นหาเมนูจากฐานข้อมูล");
       return;
     }
     try {
-      await addFood.mutateAsync({
-        food_name: analysis.food_name,
-        meal_type: meal,
-        calories: analysis.calories,
-        protein_g: analysis.protein_g,
-        carbohydrates_g: analysis.carbohydrates_g,
-        fat_g: analysis.fat_g,
-        ai_confidence: analysis.ai_confidence,
-      });
-      toast.success("บันทึกลงไดอารี่แล้ว!");
-      navigate({ to: "/dashboard" });
+      await save.mutateAsync(
+        ready.map((r) => ({
+          food_item_id: r.food_item_id,
+          food_name: r.name,
+          meal_type: meal,
+          serving_quantity: r.quantity,
+          serving_unit: r.unit,
+          nutrition: r.nutrition!,
+          source: "ai_scan" as const,
+          source_reference: result?.source ?? NUTRITION_SOURCE_LABEL,
+          ai_confidence: r.confidence,
+          image_url: null,
+        })),
+      );
+      toast.success("บันทึกอาหารแล้ว");
+      navigate({ to: "/food/history" });
     } catch {
       toast.error("บันทึกไม่สำเร็จ");
     }
   };
 
+  if (!loading && !signedIn) {
+    return (
+      <AppScreen>
+        <SignInPrompt message="เข้าสู่ระบบเพื่อสแกนและบันทึกอาหารของคุณ" />
+      </AppScreen>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-foreground">
-      <div className="relative mx-auto min-h-screen w-full max-w-md overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,oklch(0.45_0.05_47),oklch(0.22_0.04_47))]" />
-
-        <div className="relative flex items-center justify-between px-4 pt-5">
+    <AppScreen>
+      <header className="mb-4 flex items-center gap-2">
+        {step === "choose" ? null : (
           <button
-            onClick={() => navigate({ to: "/dashboard" })}
-            className="grid size-10 place-items-center rounded-full bg-card/15 text-primary-foreground"
-            aria-label="ปิด"
+            onClick={() => {
+              stopCamera();
+              setStep("choose");
+              setImage(null);
+              setResult(null);
+              setRows([]);
+            }}
+            className="grid size-9 place-items-center rounded-full bg-secondary"
+            aria-label="ย้อนกลับ"
           >
-            <X className="size-5" />
+            <ArrowLeft className="size-4" />
           </button>
-          <p className="text-sm font-extrabold text-primary-foreground">สแกนอาหาร</p>
-          <button
-            className="grid size-10 place-items-center rounded-full bg-card/15 text-primary-foreground"
-            aria-label="สแกนบาร์โค้ด"
-          >
-            <Barcode className="size-5" />
-          </button>
-        </div>
-
-        <div className="relative mx-auto mt-16 size-64">
-          {[
-            "left-0 top-0 border-l-4 border-t-4 rounded-tl-3xl",
-            "right-0 top-0 border-r-4 border-t-4 rounded-tr-3xl",
-            "left-0 bottom-0 border-b-4 border-l-4 rounded-bl-3xl",
-            "right-0 bottom-0 border-b-4 border-r-4 rounded-br-3xl",
-          ].map((c) => (
-            <span key={c} className={`absolute size-12 border-primary ${c}`} />
-          ))}
-          <p className="absolute -bottom-12 w-full text-center text-xs font-bold text-primary-foreground/80">
-            จัดอาหารให้อยู่ในกรอบ
+        )}
+        <div>
+          <h1 className="text-xl font-extrabold tracking-tight">สแกนอาหาร</h1>
+          <p className="text-xs font-semibold text-muted-foreground">
+            บันทึกอาหารได้สองวิธี ตามที่คุณสะดวก
           </p>
         </div>
+      </header>
 
-        <button
-          onClick={() => setOpen(true)}
-          className="absolute bottom-40 left-1/2 grid size-16 -translate-x-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95"
-          aria-label="ถ่ายภาพ"
-        >
-          <Camera className="size-7" strokeWidth={2.4} />
-        </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) pickFile(file);
+          e.target.value = "";
+        }}
+      />
 
-        {open ? (
-          <section className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-card p-5 pb-24 shadow-[var(--shadow-card)] animate-in slide-in-from-bottom duration-300">
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-muted" />
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-extrabold text-success">
-                <Zap className="size-3" /> AI มั่นใจ {Math.round(analysis.ai_confidence * 100)}%
+      {step === "choose" ? (
+        <div className="space-y-3">
+          <button
+            onClick={openCamera}
+            className="card-soft flex w-full items-center gap-3 p-4 text-left active:scale-[0.99]"
+          >
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+              <ScanLine className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-extrabold">สแกนอาหารด้วย AI</span>
+              <span className="block text-[11px] font-semibold text-muted-foreground">
+                ถ่ายภาพอาหารเพื่อให้ AI ช่วยระบุเมนูและประมาณคุณค่าทางโภชนาการ
               </span>
-              <button
-                onClick={() => setOpen(false)}
-                className="ml-auto text-xs font-bold text-muted-foreground"
-              >
-                ถ่ายใหม่
-              </button>
-            </div>
-            <h2 className="text-2xl font-black">{analysis.food_name}</h2>
-            <p className="text-xs font-bold text-muted-foreground">{analysis.portion}</p>
+            </span>
+          </button>
 
-            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-              {[
-                { l: "แคลอรี", v: analysis.calories, u: "kcal" },
-                { l: "โปรตีน", v: analysis.protein_g, u: "ก" },
-                { l: "คาร์บ", v: analysis.carbohydrates_g, u: "ก" },
-                { l: "ไขมัน", v: analysis.fat_g, u: "ก" },
-              ].map((m) => (
-                <div key={m.l} className="rounded-2xl bg-primary-soft p-2.5">
-                  <p className="text-lg font-black leading-none">{m.v}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground">
-                    {m.l} ({m.u})
-                  </p>
-                </div>
-              ))}
-            </div>
+          <Link
+            to="/food/search"
+            search={{ q: "" }}
+            className="card-soft flex w-full items-center gap-3 p-4 text-left active:scale-[0.99]"
+          >
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary">
+              <Search className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-extrabold">ค้นหาเมนูอาหาร</span>
+              <span className="block text-[11px] font-semibold text-muted-foreground">
+                ค้นหาและเลือกอาหารจากฐานข้อมูล
+              </span>
+            </span>
+          </Link>
 
-            <div className="mt-3 flex gap-2">
-              {meals.map((m) => (
-                <button
-                  key={m.key}
-                  onClick={() => setMeal(m.key)}
-                  className={`flex-1 rounded-2xl py-2 text-xs font-extrabold ${
-                    meal === m.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-primary-soft text-primary"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+          <p className="flex gap-2 rounded-2xl bg-secondary p-3 text-[11px] font-semibold text-muted-foreground">
+            <Info className="mt-0.5 size-4 shrink-0" /> {AI_DISCLAIMER}
+          </p>
 
-            <p className="mt-3 rounded-2xl bg-secondary p-3 text-xs font-semibold">
-              🐼 เคล็ดลับ: ขอข้าวกล้องแทนข้าวขาว และลดน้ำมันจะช่วยลดได้ราว 90 kcal
+          <Link
+            to="/food/history"
+            className="block rounded-2xl bg-primary-soft py-3 text-center text-xs font-extrabold text-primary"
+          >
+            ดูประวัติอาหาร
+          </Link>
+        </div>
+      ) : null}
+
+      {step === "camera" ? (
+        <div className="space-y-3">
+          <p className="text-xs font-extrabold">อนุญาตให้ใช้กล้องเพื่อถ่ายภาพอาหาร</p>
+          <div className="relative overflow-hidden rounded-3xl bg-foreground/90">
+            {image ? (
+              <img src={image} alt="ภาพอาหารที่ถ่ายไว้" className="aspect-square w-full object-cover" />
+            ) : (
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className="aspect-square w-full bg-foreground object-cover"
+              />
+            )}
+          </div>
+
+          {cameraError ? (
+            <p className="rounded-2xl bg-destructive/10 p-3 text-[11px] font-bold text-destructive">
+              {cameraError}
             </p>
+          ) : null}
 
-            <button
-              onClick={save}
-              disabled={addFood.isPending}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-[0.98] disabled:opacity-60"
-            >
-              <BookmarkPlus className="size-5" /> บันทึกลงไดอารี่
-            </button>
-          </section>
-        ) : null}
-      </div>
-      <BottomNav />
-    </div>
+          <div className="flex gap-2">
+            {image ? (
+              <>
+                <button
+                  onClick={retake}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-2xl bg-secondary py-3 text-xs font-extrabold"
+                >
+                  <RotateCcw className="size-4" /> ถ่ายใหม่
+                </button>
+                <button
+                  onClick={confirmImage}
+                  disabled={analyzing}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-2xl bg-primary py-3 text-xs font-extrabold text-primary-foreground disabled:opacity-60"
+                >
+                  <Sparkles className="size-4" /> {analyzing ? "กำลังวิเคราะห์…" : "ยืนยันภาพ"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-2xl bg-secondary py-3 text-xs font-extrabold"
+                >
+                  <ImagePlus className="size-4" /> เลือกรูปจากอุปกรณ์
+                </button>
+                <button
+                  onClick={capture}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-2xl bg-primary py-3 text-xs font-extrabold text-primary-foreground"
+                >
+                  <Camera className="size-4" /> ถ่ายภาพอาหาร
+                </button>
+              </>
+            )}
+          </div>
+
+          <p className="flex gap-2 rounded-2xl bg-secondary p-3 text-[11px] font-semibold text-muted-foreground">
+            <Info className="mt-0.5 size-4 shrink-0" /> {AI_DISCLAIMER}
+          </p>
+        </div>
+      ) : null}
+
+      {step === "review" ? (
+        <div className="space-y-3">
+          {result?.status !== "ok" ? (
+            <section className="card-soft p-4">
+              <p className="text-sm font-extrabold">ยังไม่ได้เชื่อมต่อระบบวิเคราะห์ภาพด้วย AI</p>
+              <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                {result?.message ??
+                  "ระบบ AI จะเชื่อมต่อในขั้นถัดไป ระหว่างนี้บันทึกอาหารได้โดยค้นหาเมนูจากฐานข้อมูล"}
+              </p>
+              <Link
+                to="/food/search"
+                search={{ q: "" }}
+                className="mt-4 block rounded-2xl bg-primary py-3 text-center text-xs font-extrabold text-primary-foreground"
+              >
+                ค้นหาเมนูอาหาร
+              </Link>
+            </section>
+          ) : (
+            <>
+              <p className="text-xs font-extrabold">แก้ไขรายการอาหาร</p>
+              <ul className="space-y-2">
+                {rows.map((row) => (
+                  <li key={row.key} className="card-soft space-y-2 p-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={row.name}
+                        onChange={(e) =>
+                          setRows((rs) =>
+                            rs.map((r) => (r.key === row.key ? { ...r, name: e.target.value } : r)),
+                          )
+                        }
+                        className="min-w-0 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-extrabold outline-none"
+                        aria-label="ชื่อเมนู"
+                      />
+                      <button
+                        onClick={() => setRows((rs) => rs.filter((r) => r.key !== row.key))}
+                        className="grid size-8 place-items-center rounded-xl bg-secondary text-destructive"
+                        aria-label="ลบรายการ"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          setRows((rs) =>
+                            rs.map((r) =>
+                              r.key === row.key
+                                ? { ...r, quantity: Math.max(0.5, r.quantity - 0.5) }
+                                : r,
+                            ),
+                          )
+                        }
+                        className="grid size-8 place-items-center rounded-xl bg-secondary"
+                        aria-label="ลดจำนวน"
+                      >
+                        <Minus className="size-3.5" />
+                      </button>
+                      <span className="min-w-10 text-center text-sm font-black">
+                        {portionLabel(row.quantity)}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setRows((rs) =>
+                            rs.map((r) =>
+                              r.key === row.key ? { ...r, quantity: r.quantity + 0.5 } : r,
+                            ),
+                          )
+                        }
+                        className="grid size-8 place-items-center rounded-xl bg-secondary"
+                        aria-label="เพิ่มจำนวน"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                      <input
+                        value={row.unit}
+                        onChange={(e) =>
+                          setRows((rs) =>
+                            rs.map((r) => (r.key === row.key ? { ...r, unit: e.target.value } : r)),
+                          )
+                        }
+                        className="w-20 rounded-xl bg-secondary px-2 py-2 text-center text-[11px] font-extrabold outline-none"
+                        aria-label="หน่วย"
+                      />
+                      {row.confidence !== null ? (
+                        <span className="ml-auto rounded-full bg-success-soft px-2 py-1 text-[10px] font-extrabold text-success">
+                          AI มั่นใจ {Math.round(row.confidence * 100)}%
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-[11px] font-bold text-muted-foreground">
+                      {row.nutrition
+                        ? `${row.nutrition.calories} kcal โดยประมาณ · โปรตีน ${row.nutrition.protein_g} ก · คาร์บ ${row.nutrition.carbs_g} ก · ไขมัน ${row.nutrition.fat_g} ก`
+                        : "ไม่พบค่าโภชนาการในฐานข้อมูล กรุณาค้นหาเมนูนี้เพื่อบันทึก"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-xs font-extrabold">มื้ออาหาร</p>
+              <div className="flex gap-2">
+                {MEAL_ORDER.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMeal(m)}
+                    className={`flex-1 rounded-2xl py-2 text-[11px] font-extrabold ${
+                      meal === m
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
+                    }`}
+                  >
+                    {MEAL_LABEL[m].replace("มื้อ", "")}
+                  </button>
+                ))}
+              </div>
+
+              <p className="rounded-2xl bg-secondary p-3 text-[11px] font-semibold text-muted-foreground">
+                โปรดตรวจสอบรายการอาหารและปริมาณก่อนบันทึก · แหล่งข้อมูล:{" "}
+                {result?.source ?? NUTRITION_SOURCE_LABEL}
+              </p>
+
+              <button
+                onClick={saveRows}
+                disabled={save.isPending}
+                className="w-full rounded-2xl bg-primary py-3.5 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
+              >
+                บันทึกอาหาร
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
+    </AppScreen>
   );
 }
