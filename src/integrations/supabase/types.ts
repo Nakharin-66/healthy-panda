@@ -1286,6 +1286,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      challenge_effective_status: {
+        Args: { _challenge_id: string }
+        Returns: string
+      }
+      challenge_effective_target: {
+        Args: { _challenge_id: string; _profile_id: string }
+        Returns: number
+      }
       challenge_leaderboard: {
         Args: { _challenge_id: string; _friends_only?: boolean }
         Returns: {
@@ -1296,6 +1304,7 @@ export type Database = {
           picture_url: string
           profile_id: string
           progress: number
+          score: number
         }[]
       }
       challenge_metric_daily: {
@@ -1314,6 +1323,10 @@ export type Database = {
         Args: { _challenge_id: string; _profile_id: string }
         Returns: number
       }
+      compute_challenge_score: {
+        Args: { _challenge_id: string; _profile_id: string }
+        Returns: number
+      }
       create_challenge: {
         Args: {
           _board: Database["public"]["Enums"]["challenge_board_visibility"]
@@ -1324,7 +1337,9 @@ export type Database = {
           _icon?: string
           _metric: string
           _participation: Database["public"]["Enums"]["challenge_participation"]
+          _scoring?: Database["public"]["Enums"]["challenge_scoring_type"]
           _start_date: string
+          _target_source?: Database["public"]["Enums"]["challenge_target_source"]
           _target_value: number
           _title: string
         }
@@ -1461,6 +1476,10 @@ export type Database = {
           request_status: string
         }[]
       }
+      personal_daily_target: {
+        Args: { _fallback: number; _metric: string; _profile_id: string }
+        Returns: number
+      }
       remove_friend: {
         Args: { _friend_profile_id: string }
         Returns: undefined
@@ -1474,6 +1493,13 @@ export type Database = {
         Returns: undefined
       }
       send_friend_request: { Args: { _code: string }; Returns: string }
+      set_challenge_status: {
+        Args: {
+          _challenge_id: string
+          _status: Database["public"]["Enums"]["challenge_status"]
+        }
+        Returns: undefined
+      }
       sync_challenge_progress: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -1567,6 +1593,17 @@ export type Database = {
         my_progress: number | null
         my_completed: boolean | null
         invited: boolean | null
+        scoring_type:
+          | Database["public"]["Enums"]["challenge_scoring_type"]
+          | null
+        target_source:
+          | Database["public"]["Enums"]["challenge_target_source"]
+          | null
+        max_score: number | null
+        status: Database["public"]["Enums"]["challenge_status"] | null
+        effective_status: string | null
+        my_score: number | null
+        my_target: number | null
       }
     }
   }
