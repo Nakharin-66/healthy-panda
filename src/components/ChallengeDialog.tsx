@@ -6,14 +6,21 @@ import {
   CATEGORY_LABEL,
   GOAL_MODE_LABEL,
   METRIC_OPTIONS,
+  METRIC_SOURCE_LABEL,
   PARTICIPATION_LABEL,
+  SCORING_LABEL,
+  TARGET_SOURCE_LABEL,
   challengeErrorMessage,
+  computeMaxScore,
   useCreateChallenge,
   type ChallengeBoardVisibility,
   type ChallengeCategory,
   type ChallengeGoalMode,
   type ChallengeParticipation,
+  type ChallengeScoringType,
+  type ChallengeTargetSource,
 } from "@/lib/challenges";
+
 
 function today(offsetDays = 0) {
   const d = new Date();
@@ -45,6 +52,16 @@ export function ChallengeDialog({
   const [endDate, setEndDate] = useState(today(6));
   const [participation, setParticipation] = useState<ChallengeParticipation>("everyone");
   const [board, setBoard] = useState<ChallengeBoardVisibility>("everyone");
+  const [scoring, setScoring] = useState<ChallengeScoringType>("daily_completion");
+  const [targetSource, setTargetSource] = useState<ChallengeTargetSource>("fixed");
+
+  const maxScore = computeMaxScore({
+    scoring,
+    goalMode,
+    metric,
+    startDate,
+    endDate: endDate < startDate ? startDate : endDate,
+  });
 
   if (!open) return null;
 
@@ -76,6 +93,8 @@ export function ChallengeDialog({
         end_date: endDate,
         participation,
         board,
+        scoring,
+        target_source: targetSource,
       },
       {
         onSuccess: (row) => {
@@ -257,6 +276,55 @@ export function ChallengeDialog({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className={labelClass} htmlFor="ch-scoring">
+                วิธีคำนวณคะแนน
+              </label>
+              <select
+                id="ch-scoring"
+                className={inputClass}
+                value={scoring}
+                onChange={(e) => setScoring(e.target.value as ChallengeScoringType)}
+              >
+                {Object.entries(SCORING_LABEL).map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="ch-target-source">
+                แหล่งเป้าหมาย
+              </label>
+              <select
+                id="ch-target-source"
+                className={inputClass}
+                value={targetSource}
+                onChange={(e) => setTargetSource(e.target.value as ChallengeTargetSource)}
+              >
+                {Object.entries(TARGET_SOURCE_LABEL).map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-primary-soft p-3 text-[11px] font-bold text-primary">
+            <p>คะแนนสูงสุด = {maxScore.toLocaleString("th-TH")} คะแนน</p>
+            <p className="mt-0.5 font-semibold">
+              ระบบใช้{METRIC_SOURCE_LABEL[metric] ?? "ข้อมูลสุขภาพที่บันทึกไว้ในระบบ"}
+            </p>
+            {targetSource === "personal_goal" ? (
+              <p className="mt-0.5 font-semibold">
+                ผู้เข้าร่วมแต่ละคนจะถูกวัดกับเป้าหมายรายวันของตัวเอง
+              </p>
+            ) : null}
           </div>
 
           <p className="text-[11px] font-semibold text-muted-foreground">
