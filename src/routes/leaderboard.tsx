@@ -12,6 +12,7 @@ import { useResolvedAvatar } from "@/lib/avatar";
 import { useFriendRealtime, useFriendSummary } from "@/lib/friends";
 import {
   CATEGORY_LABEL,
+  STATUS_LABEL,
   METRIC_LABEL,
   challengeErrorMessage,
   challengeStatus,
@@ -266,7 +267,18 @@ function Leaderboard() {
         ) : challenges.isError ? (
           <Info>ไม่สามารถโหลดชาเลนจ์ได้</Info>
         ) : list.length === 0 ? (
-          <Info>ยังไม่มีชาเลนจ์ — กด “สร้างชาเลนจ์” เพื่อเริ่มชาเลนจ์แรกของคุณ</Info>
+          <div className="card-soft p-6 text-center">
+            <p className="text-sm font-extrabold">ยังไม่มีชาเลนจ์</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">
+              สร้างชาเลนจ์แรกของคุณเพื่อเริ่มต้นการแข่งขัน
+            </p>
+            <button
+              onClick={() => setCreating(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-extrabold text-primary-foreground"
+            >
+              <Plus className="size-4" /> สร้างชาเลนจ์
+            </button>
+          </div>
         ) : (
           <section className="space-y-2.5">
             {list.map((c) => {
@@ -281,7 +293,12 @@ function Leaderboard() {
                       <Trophy className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-extrabold">{c.title}</p>
+                      <div className="flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-sm font-extrabold">{c.title}</p>
+                        <span className="shrink-0 rounded-xl bg-primary-soft px-2 py-0.5 text-[10px] font-black text-primary">
+                          {STATUS_LABEL[c.effective_status] ?? status.label}
+                        </span>
+                      </div>
                       {c.description ? (
                         <p className="text-xs font-semibold text-muted-foreground">
                           {c.description}
@@ -289,7 +306,7 @@ function Leaderboard() {
                       ) : null}
                       <p className="mt-1 text-[11px] font-bold text-primary">
                         {CATEGORY_LABEL[c.category]} • {METRIC_LABEL[c.metric] ?? c.metric} •{" "}
-                        {goalText(c)} • +{c.reward_points} แต้ม
+                        {goalText(c)}
                       </p>
                       <p className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
                         <Clock className="size-3.5" />
@@ -301,6 +318,11 @@ function Leaderboard() {
                         {c.is_owner ? " • คุณเป็นผู้สร้าง" : ""}
                         {c.invited && !c.joined ? " • คุณได้รับคำเชิญ" : ""}
                       </p>
+                      {c.joined ? (
+                        <p className="mt-0.5 text-[11px] font-black text-primary">
+                          {numberTH(c.my_score)} / {numberTH(c.max_score)} คะแนน
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -436,7 +458,8 @@ function Leaderboard() {
                       ) : null}
                     </p>
                     <p className="text-[11px] font-bold text-muted-foreground">
-                      {numberTH(Number(row.progress))} {current ? progressUnit(current) : ""}
+                      {numberTH(Number(row.score))} คะแนน • {numberTH(Number(row.progress))}{" "}
+                      {current ? progressUnit(current) : ""}
                       {row.completed ? " • สำเร็จแล้ว" : ""}
                     </p>
                   </div>
