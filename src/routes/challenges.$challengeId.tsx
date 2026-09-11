@@ -24,7 +24,11 @@ import {
   CATEGORY_LABEL,
   GOAL_MODE_LABEL,
   METRIC_LABEL,
+  METRIC_SOURCE_LABEL,
   PARTICIPATION_LABEL,
+  SCORING_LABEL,
+  STATUS_LABEL,
+  TARGET_SOURCE_LABEL,
   challengeErrorMessage,
   challengeStatus,
   daysLeft,
@@ -32,6 +36,7 @@ import {
   metricUnit,
   progressTarget,
   progressUnit,
+  scoringExplanation,
   useChallengeDetail,
   useChallengeRealtime,
   useDeleteChallenge,
@@ -39,6 +44,7 @@ import {
   useJoinChallenge,
   useLeaderboard,
   useLeaveChallenge,
+  useSetChallengeStatus,
   useSyncProgress,
 } from "@/lib/challenges";
 
@@ -80,7 +86,9 @@ function ChallengeDetail() {
   const leave = useLeaveChallenge();
   const remove = useDeleteChallenge();
   const invite = useInviteFriend();
+  const setStatus = useSetChallengeStatus();
   const [inviting, setInviting] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
 
   if (!loading && !signedIn) {
     return (
@@ -147,14 +155,14 @@ function ChallengeDetail() {
               </div>
               {status ? (
                 <span className="rounded-xl bg-primary-soft px-2 py-1 text-[10px] font-black text-primary">
-                  {status.label}
+                  {STATUS_LABEL[c.effective_status] ?? status.label}
                 </span>
               ) : null}
             </div>
 
             <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-bold">
               <Row label="เป้าหมาย" value={goalText(c)} />
-              <Row label="คะแนนรางวัล" value={`+${c.reward_points} แต้ม`} />
+              <Row label="รูปแบบเป้าหมาย" value={GOAL_MODE_LABEL[c.goal_mode]} />
               <Row
                 label="ช่วงเวลา"
                 value={`${new Date(c.start_date).toLocaleDateString("th-TH")} – ${new Date(
@@ -162,13 +170,17 @@ function ChallengeDetail() {
                 ).toLocaleDateString("th-TH")}`}
               />
               <Row label="ผู้เข้าร่วม" value={`${c.participant_count} คน`} />
+              <Row label="คะแนนสูงสุด" value={`${numberTH(c.max_score)} คะแนน`} />
+              <Row label="แหล่งเป้าหมาย" value={TARGET_SOURCE_LABEL[c.target_source]} />
               <Row label="เข้าร่วมได้" value={PARTICIPATION_LABEL[c.participation_visibility]} />
               <Row label="ดูอันดับได้" value={BOARD_LABEL[c.leaderboard_visibility]} />
               <Row label="ผู้สร้าง" value={c.owner_name ?? "ระบบ"} />
+              <Row label="สถานะ" value={STATUS_LABEL[c.effective_status] ?? "-"} />
               <Row
                 label="เวลาที่เหลือ"
                 value={left > 0 ? `เหลืออีก ${left} วัน` : "หมดเวลาแล้ว"}
               />
+              <Row label="คะแนนรางวัล" value={`+${c.reward_points} แต้ม`} />
             </dl>
 
             <p className="mt-3 flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
