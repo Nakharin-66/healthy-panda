@@ -455,7 +455,8 @@ function ChallengeDetail() {
                       ) : null}
                     </p>
                     <p className="text-[11px] font-bold text-muted-foreground">
-                      {numberTH(Number(row.progress))} {progressUnit(c) || metricUnit(c)}
+                      {numberTH(Number(row.score))} คะแนน • {numberTH(Number(row.progress))}{" "}
+                      {progressUnit(c) || metricUnit(c)}
                       {row.completed ? " • สำเร็จแล้ว" : ""}
                     </p>
                   </div>
