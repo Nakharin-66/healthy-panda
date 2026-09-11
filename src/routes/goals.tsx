@@ -93,6 +93,7 @@ type Tab = "logs" | "goals" | "types";
 function Goals() {
   const { signedIn, loading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile();
+  const myAvatar = useResolvedAvatar(profile?.picture_url);
   const profileId = profile?.id;
   useActivityRealtime(profileId);
 

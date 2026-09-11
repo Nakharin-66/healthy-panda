@@ -124,6 +124,7 @@ function fmt(v: number | undefined, digits = 0) {
 function Dashboard() {
   const { signedIn, loading } = useAuth();
   const { data: profile } = useProfile();
+  const myAvatar = useResolvedAvatar(profile?.picture_url);
   const profileId = profile?.id;
   const { data: goals } = useGoals(profileId);
   const { data: water } = useTodayWater(profileId);
