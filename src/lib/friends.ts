@@ -116,17 +116,7 @@ export function useRemoveFriend() {
   });
 }
 
-export function useRegenerateFriendCode() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc("regenerate_friend_code");
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
-  });
-}
+/** Friend codes are permanent: created once with the profile and never regenerated. */
 
 export function useFriendProfile(profileId?: string) {
   return useQuery({

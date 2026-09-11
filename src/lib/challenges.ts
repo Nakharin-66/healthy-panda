@@ -7,6 +7,9 @@ export type ChallengeCategory = Database["public"]["Enums"]["challenge_category"
 export type ChallengeGoalMode = Database["public"]["Enums"]["challenge_goal_mode"];
 export type ChallengeParticipation = Database["public"]["Enums"]["challenge_participation"];
 export type ChallengeBoardVisibility = Database["public"]["Enums"]["challenge_board_visibility"];
+export type ChallengeScoringType = Database["public"]["Enums"]["challenge_scoring_type"];
+export type ChallengeTargetSource = Database["public"]["Enums"]["challenge_target_source"];
+export type ChallengeStatus = Database["public"]["Enums"]["challenge_status"];
 
 export type ChallengeView = {
   id: string;
@@ -33,6 +36,13 @@ export type ChallengeView = {
   my_progress: number;
   my_completed: boolean;
   invited: boolean;
+  scoring_type: ChallengeScoringType;
+  target_source: ChallengeTargetSource;
+  max_score: number;
+  status: ChallengeStatus;
+  effective_status: string;
+  my_score: number;
+  my_target: number;
 };
 
 type RawChallengeView = Database["public"]["CompositeTypes"]["challenge_view"];
@@ -63,6 +73,13 @@ function normalize(row: RawChallengeView): ChallengeView {
     my_progress: Number(row.my_progress ?? 0),
     my_completed: !!row.my_completed,
     invited: !!row.invited,
+    scoring_type: row.scoring_type ?? "daily_completion",
+    target_source: row.target_source ?? "fixed",
+    max_score: Number(row.max_score ?? 100),
+    status: row.status ?? "open",
+    effective_status: row.effective_status ?? "open",
+    my_score: Number(row.my_score ?? 0),
+    my_target: Number(row.my_target ?? row.target_value ?? 0),
   };
 }
 
@@ -70,8 +87,9 @@ export const CATEGORY_LABEL: Record<ChallengeCategory, string> = {
   movement: "การเคลื่อนไหว",
   exercise: "การออกกำลังกาย",
   water: "การดื่มน้ำ",
+  sleep: "การนอน",
   wellness: "การดูแลสุขภาพ",
-  custom: "เป้าหมายที่กำหนดเอง",
+  custom: "เป้าหมายส่วนบุคคล",
 };
 
 export const METRIC_LABEL: Record<string, string> = {
@@ -81,6 +99,7 @@ export const METRIC_LABEL: Record<string, string> = {
   exercise_minutes: "นาทีออกกำลังกาย",
   calories_burned: "แคลอรีที่เผาผลาญ",
   water_ml: "การดื่มน้ำ",
+  sleep_minutes: "เวลานอน",
   activity_days: "จำนวนวันที่มีกิจกรรม",
 };
 
@@ -91,6 +110,7 @@ export const METRIC_UNIT: Record<string, string> = {
   exercise_minutes: "นาที",
   calories_burned: "kcal",
   water_ml: "มล.",
+  sleep_minutes: "นาที",
   activity_days: "วัน",
 };
 
@@ -100,8 +120,60 @@ export const METRIC_OPTIONS: { value: string; label: string }[] = [
   { value: "active_minutes", label: "นาทีเคลื่อนไหว" },
   { value: "calories_burned", label: "แคลอรีที่เผาผลาญ" },
   { value: "water_ml", label: "การดื่มน้ำ (มล.)" },
+  { value: "sleep_minutes", label: "เวลานอน (นาที)" },
   { value: "activity_days", label: "จำนวนวันที่มีกิจกรรม" },
 ];
+
+/** Which stored health data each metric is calculated from. */
+export const METRIC_SOURCE_LABEL: Record<string, string> = {
+  steps: "จำนวนก้าวจากอุปกรณ์สุขภาพที่เชื่อมต่อ (สถิติรายวัน)",
+  distance_km: "ระยะทางจากบันทึกกิจกรรม",
+  active_minutes: "ระยะเวลาจากบันทึกกิจกรรมและการออกกำลังกาย",
+  exercise_minutes: "ระยะเวลาการออกกำลังกาย",
+  calories_burned: "แคลอรีที่เผาผลาญจากบันทึกกิจกรรมและการออกกำลังกาย",
+  water_ml: "ปริมาณน้ำจากบันทึกการดื่มน้ำ",
+  sleep_minutes: "เวลานอนจากสถิติรายวันของอุปกรณ์สุขภาพ",
+  activity_days: "จำนวนวันที่มีบันทึกกิจกรรม",
+};
+
+export const SCORING_LABEL: Record<ChallengeScoringType, string> = {
+  daily_completion: "บรรลุเป้าหมายรายวัน (วันละ 100 คะแนน)",
+  progress_percentage: "คิดตามสัดส่วนของเป้าหมาย (สูงสุด 100 คะแนน)",
+};
+
+export const TARGET_SOURCE_LABEL: Record<ChallengeTargetSource, string> = {
+  fixed: "เป้าหมายเดียวกันทุกคน",
+  personal_goal: "ใช้เป้าหมายของแต่ละคน",
+};
+
+export const STATUS_LABEL: Record<string, string> = {
+  open: "เปิดรับ",
+  running: "กำลังดำเนินการ",
+  ended: "สิ้นสุดแล้ว",
+  closed: "ปิดรับสมาชิก",
+  cancelled: "ยกเลิก",
+};
+
+export function challengeDays(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`).getTime();
+  const end = new Date(`${endDate}T00:00:00`).getTime();
+  return Math.max(1, Math.round((end - start) / 86_400_000) + 1);
+}
+
+/** Same rule the database uses when creating a challenge. */
+export function computeMaxScore(input: {
+  scoring: ChallengeScoringType;
+  goalMode: ChallengeGoalMode;
+  metric: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const dailyStyle =
+    input.scoring === "daily_completion" &&
+    input.goalMode === "daily" &&
+    input.metric !== "activity_days";
+  return dailyStyle ? challengeDays(input.startDate, input.endDate) * 100 : 100;
+}
 
 export const GOAL_MODE_LABEL: Record<ChallengeGoalMode, string> = {
   daily: "เป้าหมายรายวัน",
@@ -167,11 +239,45 @@ export function daysLeft(endDate: string) {
 
 export function challengeStatus(c: ChallengeView) {
   const today = new Date().toISOString().slice(0, 10);
+  if (c.effective_status === "cancelled") return { key: "cancelled", label: "ยกเลิก" } as const;
   if (c.my_completed) return { key: "completed", label: "สำเร็จแล้ว" } as const;
-  if (c.end_date < today) return { key: "expired", label: "หมดเวลา" } as const;
-  if (c.start_date > today) return { key: "upcoming", label: "ยังไม่เริ่ม" } as const;
-  if (c.joined) return { key: "joined", label: "เข้าร่วมแล้ว" } as const;
+  if (c.effective_status === "ended" || c.end_date < today)
+    return { key: "expired", label: "สิ้นสุดแล้ว" } as const;
+  if (c.effective_status === "closed" && !c.joined)
+    return { key: "closed", label: "ปิดรับสมาชิก" } as const;
+  if (c.start_date > today) return { key: "upcoming", label: "เปิดรับ" } as const;
+  if (c.joined) return { key: "joined", label: "กำลังดำเนินการ" } as const;
   return { key: "open", label: "ยังไม่เข้าร่วม" } as const;
+}
+
+/** Human explanation of how the score is produced, from the challenge's own rules. */
+export function scoringExplanation(c: ChallengeView): string[] {
+  const unit = metricUnit(c);
+  const amount = Math.round(c.target_value).toLocaleString("th-TH");
+  const lines: string[] = [];
+
+  if (c.target_source === "personal_goal") {
+    lines.push("ระบบใช้เป้าหมายรายวันที่ผู้เข้าร่วมแต่ละคนตั้งไว้เอง");
+    if (c.my_target > 0) {
+      lines.push(`เป้าหมายของคุณตอนนี้: ${Math.round(c.my_target).toLocaleString("th-TH")} ${unit}`);
+    }
+  } else {
+    lines.push(
+      c.goal_mode === "daily"
+        ? `ทุกคนใช้เป้าหมายเดียวกัน: ${amount} ${unit} ต่อวัน`
+        : `ทุกคนใช้เป้าหมายเดียวกัน: ${amount} ${unit} สะสมรวม`,
+    );
+  }
+
+  if (c.scoring_type === "daily_completion" && c.goal_mode === "daily") {
+    lines.push("บรรลุเป้าหมายรายวัน = 100 คะแนน");
+  } else {
+    lines.push("คะแนน = สัดส่วนความคืบหน้าเทียบเป้าหมาย");
+  }
+
+  lines.push(`คะแนนสูงสุด = ${c.max_score.toLocaleString("th-TH")} คะแนน`);
+  lines.push(`ระบบใช้${METRIC_SOURCE_LABEL[c.metric] ?? "ข้อมูลสุขภาพที่บันทึกไว้ในระบบ"}`);
+  return lines;
 }
 
 /** Target used for the progress bar: daily goals are counted in days. */
@@ -235,6 +341,8 @@ export type CreateChallengeInput = {
   end_date: string;
   participation: ChallengeParticipation;
   board: ChallengeBoardVisibility;
+  scoring: ChallengeScoringType;
+  target_source: ChallengeTargetSource;
 };
 
 export function useCreateChallenge() {
@@ -252,6 +360,8 @@ export function useCreateChallenge() {
         _end_date: input.end_date,
         _participation: input.participation,
         _board: input.board,
+        _scoring: input.scoring,
+        _target_source: input.target_source,
       });
       if (error) throw error;
       return data;
@@ -302,6 +412,24 @@ export function useDeleteChallenge() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["challenges"] }),
+  });
+}
+
+/** Owner-only: close registration or cancel the challenge. */
+export function useSetChallengeStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: ChallengeStatus }) => {
+      const { error } = await supabase.rpc("set_challenge_status", {
+        _challenge_id: id,
+        _status: status,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["challenges"] });
+      qc.invalidateQueries({ queryKey: ["challenge_detail"] });
+    },
   });
 }
 
