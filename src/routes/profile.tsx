@@ -14,7 +14,7 @@ import {
   useUploadAvatar,
   validateAvatarFile,
 } from "@/lib/avatar";
-import { useFriendRealtime, useFriendSummary, useRegenerateFriendCode } from "@/lib/friends";
+import { MAX_FRIENDS, useFriendRealtime, useFriendSummary } from "@/lib/friends";
 import { THEME_LABEL, normalizeTheme, storeTheme, useThemeSync, type ThemePref } from "@/lib/theme";
 import avatarFallback from "@/assets/panda-avatar.png";
 import {
@@ -32,6 +32,7 @@ import {
   Copy,
   RefreshCw,
   Users,
+  Share2,
 } from "lucide-react";
 
 
@@ -117,7 +118,7 @@ function Profile() {
   const deleteAvatar = useDeleteAvatar(profile?.id);
   const resolvedAvatar = useResolvedAvatar(profile?.picture_url);
   const friendSummary = useFriendSummary(signedIn);
-  const regenerate = useRegenerateFriendCode();
+  
   useFriendRealtime(signedIn);
 
 
@@ -599,8 +600,9 @@ function Profile() {
           <p className="flex-1 text-lg font-black tracking-wider text-primary">
             {profile?.friend_code ?? "—"}
           </p>
+        </div>
+        <div className="mt-2 flex gap-2">
           <button
-            aria-label="คัดลอกรหัสเพื่อน"
             disabled={!profile?.friend_code}
             onClick={async () => {
               try {
@@ -610,30 +612,35 @@ function Profile() {
                 toast.error("คัดลอกไม่สำเร็จ");
               }
             }}
-            className="grid size-9 place-items-center rounded-xl bg-primary-soft text-primary disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary-soft py-2.5 text-xs font-extrabold text-primary disabled:opacity-50"
           >
-            <Copy className="size-4" />
+            <Copy className="size-4" /> คัดลอกรหัส
           </button>
           <button
-            aria-label="สร้างรหัสเพื่อนใหม่"
-            disabled={regenerate.isPending}
-            onClick={() =>
-              regenerate.mutate(undefined, {
-                onSuccess: () => toast.success("สร้างรหัสเพื่อนใหม่แล้ว"),
-                onError: () => toast.error("สร้างรหัสใหม่ไม่สำเร็จ"),
-              })
-            }
-            className="grid size-9 place-items-center rounded-xl bg-primary-soft text-primary disabled:opacity-50"
+            disabled={!profile?.friend_code}
+            onClick={async () => {
+              const code = profile?.friend_code;
+              if (!code) return;
+              const text = `เพิ่มฉันเป็นเพื่อนใน Healthy Panda ด้วยรหัส ${code}`;
+              try {
+                if (typeof navigator !== "undefined" && navigator.share) {
+                  await navigator.share({ title: "รหัสเพื่อนของฉัน", text });
+                } else {
+                  await navigator.clipboard.writeText(text);
+                  toast.success("คัดลอกข้อความชวนเพื่อนแล้ว");
+                }
+              } catch {
+                /* user cancelled */
+              }
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary-soft py-2.5 text-xs font-extrabold text-primary disabled:opacity-50"
           >
-            {regenerate.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
+            <Share2 className="size-4" /> แชร์รหัส
           </button>
         </div>
-        <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-          แชร์รหัสนี้ให้เพื่อนเพื่อเพิ่มกันเป็นเพื่อน (สูงสุด 50 คน)
+        <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+          รหัสนี้เป็นรหัสถาวรของบัญชีคุณ เปลี่ยนไม่ได้ • เพื่อน{" "}
+          {friendSummary.data?.friend_count ?? 0} / {MAX_FRIENDS} คน
         </p>
         <button
           onClick={() => navigate({ to: "/friends" })}

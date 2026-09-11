@@ -21,6 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/lib/db";
+import { useResolvedAvatar } from "@/lib/avatar";
 import {
   ACTIVITY_CATEGORIES,
   DEFAULT_WEIGHT_KG,
@@ -92,6 +93,7 @@ type Tab = "logs" | "goals" | "types";
 function Goals() {
   const { signedIn, loading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile();
+  const myAvatar = useResolvedAvatar(profile?.picture_url);
   const profileId = profile?.id;
   useActivityRealtime(profileId);
 
@@ -193,7 +195,7 @@ function Goals() {
         title="เป้าหมายของฉัน"
         subtitle={`น้ำหนักที่ใช้คำนวณ ${weight} กก.`}
         streak={profile?.streak_days ?? 0}
-        avatarUrl={profile?.picture_url ?? null}
+        avatarUrl={myAvatar}
         avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ผู้ใช้"}
       />
 

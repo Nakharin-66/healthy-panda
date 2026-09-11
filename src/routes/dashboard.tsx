@@ -13,6 +13,7 @@ import {
   useLatestVitals,
   DEFAULT_GOALS,
 } from "@/lib/db";
+import { useResolvedAvatar } from "@/lib/avatar";
 import {
   useActivityLogs,
   useActivityRealtime,
@@ -124,6 +125,7 @@ function fmt(v: number | undefined, digits = 0) {
 function Dashboard() {
   const { signedIn, loading } = useAuth();
   const { data: profile } = useProfile();
+  const myAvatar = useResolvedAvatar(profile?.picture_url);
   const profileId = profile?.id;
   const { data: goals } = useGoals(profileId);
   const { data: water } = useTodayWater(profileId);
@@ -216,6 +218,8 @@ function Dashboard() {
         title={`สวัสดี, ${profile?.display_name ?? "เพื่อนแพนด้า"}!`}
         subtitle="วันนี้ไปได้สวยเลย 🐼"
         streak={profile?.streak_days ?? 0}
+        avatarUrl={myAvatar}
+        avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ผู้ใช้"}
       />
 
       <section className="mb-4">
