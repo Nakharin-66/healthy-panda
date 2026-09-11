@@ -13,6 +13,7 @@ import {
   useLatestVitals,
   DEFAULT_GOALS,
 } from "@/lib/db";
+import { useResolvedAvatar } from "@/lib/avatar";
 import {
   useActivityLogs,
   useActivityRealtime,
