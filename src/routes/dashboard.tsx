@@ -286,6 +286,34 @@ function Dashboard() {
         </div>
       </section>
 
+      {totals.calories === 0 ? (
+        <section className="card-soft mb-4 p-4 text-center">
+          <p className="text-sm font-extrabold">วันนี้ยังไม่มีการบันทึกอาหาร</p>
+          <div className="mt-3 flex gap-2">
+            <Link
+              to="/scan"
+              className="flex-1 rounded-2xl bg-primary py-3 text-xs font-extrabold text-primary-foreground"
+            >
+              สแกนอาหาร
+            </Link>
+            <Link
+              to="/food/search"
+              search={{ q: "" }}
+              className="flex-1 rounded-2xl bg-primary-soft py-3 text-xs font-extrabold text-primary"
+            >
+              ค้นหาเมนู
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <Link
+          to="/food/history"
+          className="mb-4 block rounded-2xl bg-primary-soft py-3 text-center text-xs font-extrabold text-primary"
+        >
+          ดูประวัติอาหาร
+        </Link>
+      )}
+
       <section className="card-soft mb-4 p-4">
         <div className="flex items-center gap-3">
           <span className="grid size-12 place-items-center rounded-2xl bg-info-soft text-info">
