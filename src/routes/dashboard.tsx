@@ -218,6 +218,8 @@ function Dashboard() {
         title={`สวัสดี, ${profile?.display_name ?? "เพื่อนแพนด้า"}!`}
         subtitle="วันนี้ไปได้สวยเลย 🐼"
         streak={profile?.streak_days ?? 0}
+        avatarUrl={myAvatar}
+        avatarAlt={profile?.display_name ?? "รูปโปรไฟล์ผู้ใช้"}
       />
 
       <section className="mb-4">
