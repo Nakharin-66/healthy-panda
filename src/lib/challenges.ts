@@ -3,433 +3,309 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type ChallengeCategory = Database["public"]["Enums"]["challenge_category"];
-export type ChallengeGoalMode = Database["public"]["Enums"]["challenge_goal_mode"];
+type Fns = Database["public"]["Functions"];
 export type ChallengeParticipation = Database["public"]["Enums"]["challenge_participation"];
 export type ChallengeBoardVisibility = Database["public"]["Enums"]["challenge_board_visibility"];
-export type ChallengeScoringType = Database["public"]["Enums"]["challenge_scoring_type"];
-export type ChallengeTargetSource = Database["public"]["Enums"]["challenge_target_source"];
-export type ChallengeStatus = Database["public"]["Enums"]["challenge_status"];
+export type ChallengeRow = Fns["challenge_list"]["Returns"][number];
+export type BoardRow = Fns["challenge_board"]["Returns"][number];
+export type SeriesRow = Fns["challenge_series"]["Returns"][number];
+export type InviteRow = Fns["challenge_invites_detail"]["Returns"][number];
+export type ChallengeMetric = "steps" | "distance_km" | "active_minutes" | "calories_burned";
+export type ChallengeState = "upcoming" | "running" | "ended" | "cancelled";
 
-export type ChallengeView = {
-  id: string;
-  title: string;
-  description: string | null;
-  icon: string | null;
-  challenge_code: string;
-  category: ChallengeCategory;
-  metric: string;
-  target_value: number;
+export const TIMEZONE_LABEL = "เวลาประเทศไทย (GMT+7)";
+
+export const METRICS: {
+  value: ChallengeMetric;
+  label: string;
+  desc: string;
   unit: string;
-  goal_mode: ChallengeGoalMode;
-  start_date: string;
-  end_date: string;
-  reward_points: number;
-  participation_visibility: ChallengeParticipation;
-  leaderboard_visibility: ChallengeBoardVisibility;
-  owner_profile_id: string | null;
-  owner_name: string | null;
-  owner_picture: string | null;
-  is_owner: boolean;
-  participant_count: number;
-  joined: boolean;
-  my_progress: number;
-  my_completed: boolean;
-  invited: boolean;
-  scoring_type: ChallengeScoringType;
-  target_source: ChallengeTargetSource;
-  max_score: number;
-  status: ChallengeStatus;
-  effective_status: string;
-  my_score: number;
-  my_target: number;
-};
+  max: number;
+  step: number;
+  placeholder: string;
+}[] = [
+  { value: "steps", label: "จำนวนก้าว", desc: "แข่งขันจากจำนวนก้าวสะสม", unit: "ก้าว", max: 100000, step: 1, placeholder: "50000" },
+  { value: "distance_km", label: "ระยะทาง", desc: "แข่งขันจากระยะทางสะสม", unit: "กม.", max: 200, step: 0.1, placeholder: "30" },
+  { value: "active_minutes", label: "เวลาออกกำลังกาย", desc: "แข่งขันจากเวลาที่ออกกำลังกายสะสม", unit: "นาที", max: 1440, step: 1, placeholder: "300" },
+  { value: "calories_burned", label: "แคลอรีที่เผาผลาญ", desc: "แข่งขันจาก Active Calories ที่เผาผลาญสะสม", unit: "kcal", max: 10000, step: 1, placeholder: "2000" },
+];
 
-type RawChallengeView = Database["public"]["CompositeTypes"]["challenge_view"];
-
-function normalize(row: RawChallengeView): ChallengeView {
-  return {
-    id: row.id ?? "",
-    title: row.title ?? "",
-    description: row.description ?? null,
-    icon: row.icon ?? null,
-    challenge_code: row.challenge_code ?? "",
-    category: row.category ?? "custom",
-    metric: row.metric ?? "steps",
-    target_value: Number(row.target_value ?? 0),
-    unit: row.unit ?? "",
-    goal_mode: row.goal_mode ?? "cumulative",
-    start_date: row.start_date ?? "",
-    end_date: row.end_date ?? "",
-    reward_points: Number(row.reward_points ?? 0),
-    participation_visibility: row.participation_visibility ?? "everyone",
-    leaderboard_visibility: row.leaderboard_visibility ?? "everyone",
-    owner_profile_id: row.owner_profile_id ?? null,
-    owner_name: row.owner_name ?? null,
-    owner_picture: row.owner_picture ?? null,
-    is_owner: !!row.is_owner,
-    participant_count: Number(row.participant_count ?? 0),
-    joined: !!row.joined,
-    my_progress: Number(row.my_progress ?? 0),
-    my_completed: !!row.my_completed,
-    invited: !!row.invited,
-    scoring_type: row.scoring_type ?? "daily_completion",
-    target_source: row.target_source ?? "fixed",
-    max_score: Number(row.max_score ?? 100),
-    status: row.status ?? "open",
-    effective_status: row.effective_status ?? "open",
-    my_score: Number(row.my_score ?? 0),
-    my_target: Number(row.my_target ?? row.target_value ?? 0),
+export function metricInfo(metric: string) {
+  return METRICS.find((m) => m.value === metric) ?? {
+    value: metric as ChallengeMetric, label: metric, desc: "", unit: "", max: 1000000, step: 1, placeholder: "",
   };
 }
 
-export const CATEGORY_LABEL: Record<ChallengeCategory, string> = {
-  movement: "การเคลื่อนไหว",
-  exercise: "การออกกำลังกาย",
-  water: "การดื่มน้ำ",
-  sleep: "การนอน",
-  wellness: "การดูแลสุขภาพ",
-  custom: "เป้าหมายส่วนบุคคล",
+export const PARTICIPATION_LABEL: Record<ChallengeParticipation, string> = {
+  everyone: "ทุกคนที่มีรหัส",
+  friends: "เฉพาะเพื่อน",
+  invite_only: "เฉพาะผู้ได้รับเชิญ",
 };
-
-export const METRIC_LABEL: Record<string, string> = {
-  steps: "จำนวนก้าว",
-  distance_km: "ระยะทาง",
-  active_minutes: "นาทีเคลื่อนไหว",
-  exercise_minutes: "นาทีออกกำลังกาย",
-  calories_burned: "แคลอรีที่เผาผลาญ",
-  water_ml: "การดื่มน้ำ",
-  sleep_minutes: "เวลานอน",
-  activity_days: "จำนวนวันที่มีกิจกรรม",
+export const BOARD_LABEL: Record<ChallengeBoardVisibility, string> = {
+  everyone: "สาธารณะ",
+  friends: "เฉพาะเพื่อน",
+  participants: "เฉพาะผู้เข้าร่วม",
 };
-
-export const METRIC_UNIT: Record<string, string> = {
-  steps: "ก้าว",
-  distance_km: "กม.",
-  active_minutes: "นาที",
-  exercise_minutes: "นาที",
-  calories_burned: "kcal",
-  water_ml: "มล.",
-  sleep_minutes: "นาที",
-  activity_days: "วัน",
-};
-
-export const METRIC_OPTIONS: { value: string; label: string }[] = [
-  { value: "steps", label: "จำนวนก้าว" },
-  { value: "distance_km", label: "ระยะทาง (กม.)" },
-  { value: "active_minutes", label: "นาทีเคลื่อนไหว" },
-  { value: "calories_burned", label: "แคลอรีที่เผาผลาญ" },
-  { value: "water_ml", label: "การดื่มน้ำ (มล.)" },
-  { value: "sleep_minutes", label: "เวลานอน (นาที)" },
-  { value: "activity_days", label: "จำนวนวันที่มีกิจกรรม" },
-];
-
-/** Which stored health data each metric is calculated from. */
-export const METRIC_SOURCE_LABEL: Record<string, string> = {
-  steps: "จำนวนก้าวจากอุปกรณ์สุขภาพที่เชื่อมต่อ (สถิติรายวัน)",
-  distance_km: "ระยะทางจากบันทึกกิจกรรม",
-  active_minutes: "ระยะเวลาจากบันทึกกิจกรรมและการออกกำลังกาย",
-  exercise_minutes: "ระยะเวลาการออกกำลังกาย",
-  calories_burned: "แคลอรีที่เผาผลาญจากบันทึกกิจกรรมและการออกกำลังกาย",
-  water_ml: "ปริมาณน้ำจากบันทึกการดื่มน้ำ",
-  sleep_minutes: "เวลานอนจากสถิติรายวันของอุปกรณ์สุขภาพ",
-  activity_days: "จำนวนวันที่มีบันทึกกิจกรรม",
-};
-
-export const SCORING_LABEL: Record<ChallengeScoringType, string> = {
-  daily_completion: "บรรลุเป้าหมายรายวัน (วันละ 100 คะแนน)",
-  progress_percentage: "คิดตามสัดส่วนของเป้าหมาย (สูงสุด 100 คะแนน)",
-};
-
-export const TARGET_SOURCE_LABEL: Record<ChallengeTargetSource, string> = {
-  fixed: "เป้าหมายเดียวกันทุกคน",
-  personal_goal: "ใช้เป้าหมายของแต่ละคน",
-};
-
-export const STATUS_LABEL: Record<string, string> = {
-  open: "เปิดรับ",
+export const STATE_LABEL: Record<string, string> = {
+  upcoming: "ยังไม่เริ่ม",
   running: "กำลังดำเนินการ",
   ended: "สิ้นสุดแล้ว",
-  closed: "ปิดรับสมาชิก",
-  cancelled: "ยกเลิก",
+  cancelled: "ยกเลิกแล้ว",
 };
-
-export function challengeDays(startDate: string, endDate: string) {
-  const start = new Date(`${startDate}T00:00:00`).getTime();
-  const end = new Date(`${endDate}T00:00:00`).getTime();
-  return Math.max(1, Math.round((end - start) / 86_400_000) + 1);
-}
-
-/** Same rule the database uses when creating a challenge. */
-export function computeMaxScore(input: {
-  scoring: ChallengeScoringType;
-  goalMode: ChallengeGoalMode;
-  metric: string;
-  startDate: string;
-  endDate: string;
-}) {
-  const dailyStyle =
-    input.scoring === "daily_completion" &&
-    input.goalMode === "daily" &&
-    input.metric !== "activity_days";
-  return dailyStyle ? challengeDays(input.startDate, input.endDate) * 100 : 100;
-}
-
-export const GOAL_MODE_LABEL: Record<ChallengeGoalMode, string> = {
-  daily: "เป้าหมายรายวัน",
-  cumulative: "เป้าหมายสะสม",
-};
-
-export const PARTICIPATION_LABEL: Record<ChallengeParticipation, string> = {
-  everyone: "ทุกคน",
-  friends: "เฉพาะเพื่อน",
-  invite_only: "เชิญเท่านั้น",
-};
-
-export const BOARD_LABEL: Record<ChallengeBoardVisibility, string> = {
-  everyone: "ทุกคน",
-  friends: "เพื่อน",
-  participants: "ผู้เข้าร่วมเท่านั้น",
+export const SOURCE_LABEL: Record<string, string> = {
+  health_device: "Smartwatch / อุปกรณ์สุขภาพ",
+  manual: "กรอกข้อมูลเอง",
 };
 
 export const CHALLENGE_ERROR_TH: Record<string, string> = {
   not_authenticated: "กรุณาเข้าสู่ระบบก่อน",
-  title_required: "กรุณาตั้งชื่อชาเลนจ์",
-  invalid_metric: "ประเภทการวัดผลไม่ถูกต้อง",
+  invalid_title: "กรุณาตั้งชื่อชาเลนจ์ (ไม่เกิน 80 ตัวอักษร)",
+  invalid_metric: "ประเภทชาเลนจ์ไม่ถูกต้อง",
   invalid_target: "กรุณาระบุเป้าหมายให้มากกว่า 0",
-  invalid_date_range: "วันสิ้นสุดต้องไม่มาก่อนวันเริ่ม",
+  invalid_range: "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น",
   range_too_long: "ระยะเวลาชาเลนจ์ต้องไม่เกิน 1 ปี",
   challenge_not_found: "ไม่พบชาเลนจ์นี้",
   challenge_closed: "ชาเลนจ์นี้ปิดรับแล้ว",
   challenge_expired: "ชาเลนจ์นี้หมดเวลาแล้ว",
-  join_not_allowed: "ชาเลนจ์นี้ไม่เปิดให้คุณเข้าร่วม",
+  join_not_allowed: "ผู้สร้างไม่ได้เปิดให้คุณเข้าร่วมชาเลนจ์นี้",
   already_joined: "คุณเข้าร่วมชาเลนจ์นี้แล้ว",
   challenge_code_not_found: "ไม่พบรหัสชาเลนจ์นี้",
-  challenge_not_accessible: "คุณไม่มีสิทธิ์เข้าถึงชาเลนจ์นี้",
-  not_challenge_owner: "เฉพาะเจ้าของชาเลนจ์เท่านั้นที่เชิญได้",
+  not_owner: "เฉพาะผู้สร้างชาเลนจ์เท่านั้น",
+  not_challenge_owner: "เฉพาะผู้สร้างชาเลนจ์เท่านั้นที่เชิญได้",
   not_friends: "ผู้ใช้นี้ยังไม่ได้เป็นเพื่อนของคุณ",
+  not_joined: "กรุณาเข้าร่วมชาเลนจ์ก่อน",
+  invalid_value: "ค่าต้องไม่ติดลบและไม่เว้นว่าง",
+  value_too_large: "ค่าที่กรอกสูงเกินกว่าที่เป็นไปได้ต่อวัน",
+  date_out_of_range: "วันที่ต้องอยู่ในช่วงเวลาของชาเลนจ์",
+  duplicate: "มีรายการกรอกเองของวันนี้อยู่แล้ว กรุณาแก้ไขรายการเดิม",
   invite_not_found: "ไม่พบคำเชิญนี้ อาจถูกยกเลิกไปแล้ว",
-  not_allowed: "คุณไม่มีสิทธิ์ดำเนินการนี้",
 };
 
 export function challengeErrorMessage(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error ?? "");
-  for (const key of Object.keys(CHALLENGE_ERROR_TH)) {
-    if (raw.includes(key)) return CHALLENGE_ERROR_TH[key]!;
-  }
+  const raw =
+    error instanceof Error ? error.message : typeof error === "object" && error && "message" in error
+      ? String((error as { message: unknown }).message) : String(error ?? "");
+  if (raw.includes("duplicate key")) return CHALLENGE_ERROR_TH["duplicate"]!;
+  for (const key of Object.keys(CHALLENGE_ERROR_TH)) if (raw.includes(key)) return CHALLENGE_ERROR_TH[key]!;
   return "ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง";
 }
 
-export function metricUnit(c: Pick<ChallengeView, "metric" | "unit">) {
-  return c.unit?.trim() ? c.unit : (METRIC_UNIT[c.metric] ?? "");
+export function formatValue(v: number | null | undefined, metric: string) {
+  const n = Number(v ?? 0);
+  const digits = metric === "distance_km" ? 2 : 0;
+  return n.toLocaleString("th-TH", { maximumFractionDigits: digits });
 }
-
-export function goalText(c: ChallengeView) {
-  const unit = metricUnit(c);
-  const amount = Math.round(c.target_value).toLocaleString("th-TH");
-  return c.goal_mode === "daily"
-    ? `${amount} ${unit} ต่อวัน`
-    : `${amount} ${unit} สะสมรวม`;
+export function pct(value: number, target: number) {
+  if (!target) return 0;
+  return Math.round((Number(value) / Number(target)) * 1000) / 10;
 }
+const dtf = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", year: "numeric" });
+const dtfTime = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dShort = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" });
+export const fmtDate = (s: string) => dtf.format(new Date(s));
+export const fmtDateTime = (s: string) => dtfTime.format(new Date(s)) + " น.";
+export const fmtRange = (a: string, b: string) => `${dShort.format(new Date(a))} – ${dtf.format(new Date(b))}`;
 
-export function daysLeft(endDate: string) {
-  const end = new Date(`${endDate}T23:59:59`);
-  return Math.ceil((end.getTime() - Date.now()) / 86_400_000);
-}
-
-export function challengeStatus(c: ChallengeView) {
-  const today = new Date().toISOString().slice(0, 10);
-  if (c.effective_status === "cancelled") return { key: "cancelled", label: "ยกเลิก" } as const;
-  if (c.my_completed) return { key: "completed", label: "สำเร็จแล้ว" } as const;
-  if (c.effective_status === "ended" || c.end_date < today)
-    return { key: "expired", label: "สิ้นสุดแล้ว" } as const;
-  if (c.effective_status === "closed" && !c.joined)
-    return { key: "closed", label: "ปิดรับสมาชิก" } as const;
-  if (c.start_date > today) return { key: "upcoming", label: "เปิดรับ" } as const;
-  if (c.joined) return { key: "joined", label: "กำลังดำเนินการ" } as const;
-  return { key: "open", label: "ยังไม่เข้าร่วม" } as const;
-}
-
-/** Human explanation of how the score is produced, from the challenge's own rules. */
-export function scoringExplanation(c: ChallengeView): string[] {
-  const unit = metricUnit(c);
-  const amount = Math.round(c.target_value).toLocaleString("th-TH");
-  const lines: string[] = [];
-
-  if (c.target_source === "personal_goal") {
-    lines.push("ระบบใช้เป้าหมายรายวันที่ผู้เข้าร่วมแต่ละคนตั้งไว้เอง");
-    if (c.my_target > 0) {
-      lines.push(`เป้าหมายของคุณตอนนี้: ${Math.round(c.my_target).toLocaleString("th-TH")} ${unit}`);
-    }
-  } else {
-    lines.push(
-      c.goal_mode === "daily"
-        ? `ทุกคนใช้เป้าหมายเดียวกัน: ${amount} ${unit} ต่อวัน`
-        : `ทุกคนใช้เป้าหมายเดียวกัน: ${amount} ${unit} สะสมรวม`,
-    );
+export function timeLeft(c: Pick<ChallengeRow, "start_at" | "end_at" | "state">) {
+  const now = Date.now();
+  if (c.state === "upcoming") {
+    const d = Math.ceil((new Date(c.start_at).getTime() - now) / 86400000);
+    return `เริ่มในอีก ${d} วัน`;
   }
-
-  if (c.scoring_type === "daily_completion" && c.goal_mode === "daily") {
-    lines.push("บรรลุเป้าหมายรายวัน = 100 คะแนน");
-  } else {
-    lines.push("คะแนน = สัดส่วนความคืบหน้าเทียบเป้าหมาย");
-  }
-
-  lines.push(`คะแนนสูงสุด = ${c.max_score.toLocaleString("th-TH")} คะแนน`);
-  lines.push(`ระบบใช้${METRIC_SOURCE_LABEL[c.metric] ?? "ข้อมูลสุขภาพที่บันทึกไว้ในระบบ"}`);
-  return lines;
+  if (c.state !== "running") return STATE_LABEL[c.state] ?? "";
+  const ms = new Date(c.end_at).getTime() - now;
+  const d = Math.floor(ms / 86400000);
+  if (d >= 1) return `เหลืออีก ${d} วัน`;
+  return `เหลืออีก ${Math.max(1, Math.ceil(ms / 3600000))} ชั่วโมง`;
 }
 
-/** Target used for the progress bar: daily goals are counted in days. */
-export function progressTarget(c: ChallengeView) {
-  if (c.goal_mode !== "daily" || c.metric === "activity_days") return c.target_value;
-  const start = new Date(`${c.start_date}T00:00:00`).getTime();
-  const end = new Date(`${c.end_date}T00:00:00`).getTime();
-  return Math.max(1, Math.round((end - start) / 86_400_000) + 1);
+/** Bangkok date string (YYYY-MM-DD) for a timestamp. */
+export function bkkDate(s: string | Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date(s));
+}
+/** Build an ISO timestamp from Bangkok-local date + time inputs. */
+export function bkkToIso(date: string, time: string) {
+  return new Date(`${date}T${time}:00+07:00`).toISOString();
 }
 
-export function progressUnit(c: ChallengeView) {
-  return c.goal_mode === "daily" && c.metric !== "activity_days" ? "วัน" : metricUnit(c);
-}
+const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
+  for (const k of ["challenges", "challenge", "board", "series", "entries", "challenge_invites"])
+    qc.invalidateQueries({ queryKey: [k] });
+};
 
-export function useVisibleChallenges(enabled = true) {
+export function useChallenges(enabled = true, includeHidden = false) {
   return useQuery({
-    queryKey: ["challenges"],
+    queryKey: ["challenges", includeHidden],
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("list_visible_challenges");
+      const { data, error } = await supabase.rpc("challenge_list", { _include_hidden: includeHidden });
       if (error) throw error;
-      return (data ?? []).map(normalize);
+      return (data ?? []) as ChallengeRow[];
     },
   });
 }
 
-export function useChallengeDetail(challengeId?: string) {
+export function useChallenge(id?: string) {
   return useQuery({
-    queryKey: ["challenge_detail", challengeId],
-    enabled: !!challengeId,
+    queryKey: ["challenge", id],
+    enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("challenge_detail", {
-        _challenge_id: challengeId!,
-      });
+      const { data, error } = await supabase.rpc("challenge_list", { _include_hidden: true });
       if (error) throw error;
-      const row = data?.[0];
-      return row ? normalize(row) : null;
+      return ((data ?? []) as ChallengeRow[]).find((c) => c.id === id) ?? null;
     },
   });
 }
 
-export function useLookupChallengeCode() {
+export function useLookupCode() {
   return useMutation({
     mutationFn: async (code: string) => {
-      const { data, error } = await supabase.rpc("lookup_challenge_code", { _code: code });
+      const { data, error } = await supabase.rpc("challenge_by_code", { _code: code });
       if (error) throw error;
-      const row = data?.[0];
-      return row ? normalize(row) : null;
+      return data as string;
     },
   });
 }
 
-export type CreateChallengeInput = {
+export type ChallengeInput = {
   title: string;
   description: string;
-  category: ChallengeCategory;
-  metric: string;
-  target_value: number;
-  goal_mode: ChallengeGoalMode;
-  start_date: string;
-  end_date: string;
+  metric: ChallengeMetric;
+  target: number;
+  start_at: string;
+  end_at: string;
   participation: ChallengeParticipation;
   board: ChallengeBoardVisibility;
-  scoring: ChallengeScoringType;
-  target_source: ChallengeTargetSource;
 };
 
 export function useCreateChallenge() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateChallengeInput) => {
-      const { data, error } = await supabase.rpc("create_challenge", {
-        _title: input.title,
-        _description: input.description,
-        _category: input.category,
-        _metric: input.metric,
-        _target_value: input.target_value,
-        _goal_mode: input.goal_mode,
-        _start_date: input.start_date,
-        _end_date: input.end_date,
-        _participation: input.participation,
-        _board: input.board,
-        _scoring: input.scoring,
-        _target_source: input.target_source,
+    mutationFn: async (i: ChallengeInput) => {
+      const { data, error } = await supabase.rpc("challenge_create", {
+        _title: i.title, _description: i.description, _metric: i.metric, _target: i.target,
+        _start_at: i.start_at, _end_at: i.end_at, _participation: i.participation, _board: i.board,
       });
       if (error) throw error;
-      return data;
+      return data?.[0];
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-      qc.invalidateQueries({ queryKey: ["challenge_participants"] });
-    },
+    onSuccess: () => invalidateAll(qc),
   });
 }
 
-export function useJoinChallenge() {
+export function useUpdateChallenge() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (challengeId: string) => {
-      const { error } = await supabase.rpc("join_challenge", { _challenge_id: challengeId });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-      qc.invalidateQueries({ queryKey: ["challenge_detail"] });
-      qc.invalidateQueries({ queryKey: ["challenge_invites"] });
-      qc.invalidateQueries({ queryKey: ["leaderboard"] });
-    },
-  });
-}
-
-export function useLeaveChallenge() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (challengeId: string) => {
-      const { error } = await supabase.rpc("leave_challenge", { _challenge_id: challengeId });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-      qc.invalidateQueries({ queryKey: ["challenge_detail"] });
-      qc.invalidateQueries({ queryKey: ["leaderboard"] });
-    },
-  });
-}
-
-export function useDeleteChallenge() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (challengeId: string) => {
-      const { error } = await supabase.from("challenges").delete().eq("id", challengeId);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["challenges"] }),
-  });
-}
-
-/** Owner-only: close registration or cancel the challenge. */
-export function useSetChallengeStatus() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: ChallengeStatus }) => {
-      const { error } = await supabase.rpc("set_challenge_status", {
-        _challenge_id: id,
-        _status: status,
+    mutationFn: async (i: ChallengeInput & { id: string }) => {
+      const { error } = await supabase.rpc("challenge_update", {
+        _challenge_id: i.id, _title: i.title, _description: i.description, _metric: i.metric, _target: i.target,
+        _start_at: i.start_at, _end_at: i.end_at, _participation: i.participation, _board: i.board,
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-      qc.invalidateQueries({ queryKey: ["challenge_detail"] });
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+function simpleRpc<N extends "challenge_delete" | "challenge_hide" | "join_challenge" | "leave_challenge">(name: N) {
+  return function useIt() {
+    const qc = useQueryClient();
+    return useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.rpc(name, { _challenge_id: id });
+        if (error) throw error;
+      },
+      onSuccess: () => invalidateAll(qc),
+    });
+  };
+}
+export const useDeleteChallenge = simpleRpc("challenge_delete");
+export const useHideChallenge = simpleRpc("challenge_hide");
+export const useJoinChallenge = simpleRpc("join_challenge");
+export const useLeaveChallenge = simpleRpc("leave_challenge");
+
+export function useSyncDevice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc("challenge_sync_device", { _challenge_id: id });
+      if (error) throw error;
+      return data as { has_device: boolean; days: number; total: number };
     },
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useBoard(id?: string) {
+  return useQuery({
+    queryKey: ["board", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("challenge_board", { _challenge_id: id! });
+      if (error) throw error;
+      return (data ?? []) as BoardRow[];
+    },
+  });
+}
+
+export function useSeries(id?: string, enabled = true) {
+  return useQuery({
+    queryKey: ["series", id],
+    enabled: !!id && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("challenge_series", { _challenge_id: id! });
+      if (error) throw error;
+      return (data ?? []) as SeriesRow[];
+    },
+  });
+}
+
+export function useManualEntries(id?: string, enabled = true) {
+  return useQuery({
+    queryKey: ["entries", id],
+    enabled: !!id && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("challenge_data_entries")
+        .select("id, data_date, value, unit, source")
+        .eq("challenge_id", id!)
+        .eq("source", "manual")
+        .order("data_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSaveManualEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (i: { id?: string | undefined; challengeId: string; profileId: string; date: string; value: number }) => {
+      if (i.id) {
+        const { error } = await supabase
+          .from("challenge_data_entries")
+          .update({ data_date: i.date, value: i.value })
+          .eq("id", i.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("challenge_data_entries").insert({
+          challenge_id: i.challengeId, profile_id: i.profileId, data_date: i.date, value: i.value, source: "manual",
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteManualEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("challenge_data_entries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(qc),
   });
 }
 
@@ -438,99 +314,53 @@ export function useChallengeInvites(enabled = true) {
     queryKey: ["challenge_invites"],
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("list_challenge_invites");
+      const { data, error } = await supabase.rpc("challenge_invites_detail");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as InviteRow[];
     },
   });
 }
 
-export function useInviteFriend() {
+export function useInviteFriends() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ challengeId, friendProfileId }: { challengeId: string; friendProfileId: string }) => {
-      const { error } = await supabase.rpc("invite_friend_to_challenge", {
-        _challenge_id: challengeId,
-        _friend_profile_id: friendProfileId,
-      });
-      if (error) throw error;
+    mutationFn: async ({ challengeId, friendIds }: { challengeId: string; friendIds: string[] }) => {
+      for (const f of friendIds) {
+        const { error } = await supabase.rpc("invite_friend_to_challenge", {
+          _challenge_id: challengeId, _friend_profile_id: f,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["challenge_invites"] }),
   });
 }
 
-export function useRespondChallengeInvite() {
+export function useRespondInvite() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, action }: { id: string; action: "reject" | "cancel" }) => {
-      const { error } = await supabase.rpc("respond_challenge_invite", {
-        _invite_id: id,
-        _action: action,
-      });
+      const { error } = await supabase.rpc("respond_challenge_invite", { _invite_id: id, _action: action });
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["challenge_invites"] });
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-    },
+    onSuccess: () => invalidateAll(qc),
   });
 }
 
-export function useLeaderboard(challengeId?: string, friendsOnly = false) {
-  return useQuery({
-    queryKey: ["leaderboard", challengeId, friendsOnly],
-    enabled: !!challengeId,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("challenge_leaderboard", {
-        _challenge_id: challengeId!,
-        _friends_only: friendsOnly,
-      });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
-
-/** Recalculates the signed-in user's progress from real logs, server-side. */
-export function useSyncProgress(enabled: boolean) {
-  const qc = useQueryClient();
-  useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    supabase.rpc("sync_challenge_progress").then(({ error }) => {
-      if (!active || error) return;
-      qc.invalidateQueries({ queryKey: ["challenges"] });
-      qc.invalidateQueries({ queryKey: ["challenge_detail"] });
-      qc.invalidateQueries({ queryKey: ["leaderboard"] });
-    });
-    return () => {
-      active = false;
-    };
-  }, [enabled, qc]);
-}
-
-/** Live challenge, participant and invite updates. */
+/** Live updates for participants, challenges, invites and own data entries. */
 export function useChallengeRealtime(enabled = true) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
     const channel = supabase
       .channel("challenges-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_participants" }, () => {
-        qc.invalidateQueries({ queryKey: ["leaderboard"] });
-        qc.invalidateQueries({ queryKey: ["challenges"] });
-        qc.invalidateQueries({ queryKey: ["challenge_detail"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "challenges" }, () => {
-        qc.invalidateQueries({ queryKey: ["challenges"] });
-        qc.invalidateQueries({ queryKey: ["challenge_detail"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_invites" }, () => {
-        qc.invalidateQueries({ queryKey: ["challenge_invites"] });
-        qc.invalidateQueries({ queryKey: ["challenges"] });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_participants" }, () => invalidateAll(qc))
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenges" }, () => invalidateAll(qc))
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_invites" }, () =>
+        qc.invalidateQueries({ queryKey: ["challenge_invites"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "challenge_data_entries" }, () => invalidateAll(qc))
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };

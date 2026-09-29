@@ -20,6 +20,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as ChallengesChallengeIdRouteImport } from './routes/challenges.$challengeId'
+import { Route as ChallengesHistoryRouteImport } from './routes/challenges.history'
 import { Route as FoodHistoryRouteImport } from './routes/food.history'
 import { Route as FoodSearchRouteImport } from './routes/food.search'
 import { Route as FriendsProfileIdRouteImport } from './routes/friends.$profileId'
@@ -80,6 +81,11 @@ const ChallengesChallengeIdRoute = ChallengesChallengeIdRouteImport.update({
   path: '/challenges/$challengeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChallengesHistoryRoute = ChallengesHistoryRouteImport.update({
+  id: '/challenges/history',
+  path: '/challenges/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FoodHistoryRoute = FoodHistoryRouteImport.update({
   id: '/food/history',
   path: '/food/history',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/challenges/history': typeof ChallengesHistoryRoute
   '/food/history': typeof FoodHistoryRoute
   '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/challenges/history': typeof ChallengesHistoryRoute
   '/food/history': typeof FoodHistoryRoute
   '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
   '/challenges/$challengeId': typeof ChallengesChallengeIdRoute
+  '/challenges/history': typeof ChallengesHistoryRoute
   '/food/history': typeof FoodHistoryRoute
   '/food/search': typeof FoodSearchRoute
   '/friends/$profileId': typeof FriendsProfileIdRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/challenges/history'
     | '/food/history'
     | '/food/search'
     | '/friends/$profileId'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/challenges/history'
     | '/food/history'
     | '/food/search'
     | '/friends/$profileId'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/scan'
     | '/challenges/$challengeId'
+    | '/challenges/history'
     | '/food/history'
     | '/food/search'
     | '/friends/$profileId'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ScanRoute: typeof ScanRoute
   ChallengesChallengeIdRoute: typeof ChallengesChallengeIdRoute
+  ChallengesHistoryRoute: typeof ChallengesHistoryRoute
   FoodHistoryRoute: typeof FoodHistoryRoute
   FoodSearchRoute: typeof FoodSearchRoute
   ApiPublicHealthConnectIngestRoute: typeof ApiPublicHealthConnectIngestRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesChallengeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/challenges/history': {
+      id: '/challenges/history'
+      path: '/challenges/history'
+      fullPath: '/challenges/history'
+      preLoaderRoute: typeof ChallengesHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/food/history': {
       id: '/food/history'
       path: '/food/history'
@@ -358,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ScanRoute: ScanRoute,
   ChallengesChallengeIdRoute: ChallengesChallengeIdRoute,
+  ChallengesHistoryRoute: ChallengesHistoryRoute,
   FoodHistoryRoute: FoodHistoryRoute,
   FoodSearchRoute: FoodSearchRoute,
   ApiPublicHealthConnectIngestRoute: ApiPublicHealthConnectIngestRoute,
