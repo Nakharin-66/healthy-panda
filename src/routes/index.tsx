@@ -28,11 +28,23 @@ export const Route = createFileRoute("/")({
 function Welcome() {
   const navigate = useNavigate();
   const { signedIn, loading } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     if (loading) return;
     if (signedIn || readGuest()?.completed) navigate({ to: "/dashboard", replace: true });
   }, [loading, signedIn, navigate]);
+
+  const handleGoogleSignIn = async () => {
+    setSigningIn(true);
+    try {
+      await signInWithGoogle("/dashboard");
+    } catch (err) {
+      setSigningIn(false);
+      const m = err instanceof Error ? err.message : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ";
+      toast.error(m.toLowerCase().includes("not enabled") ? "ยังไม่ได้เปิดใช้งาน Google ใน Supabase" : m);
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-primary px-6 text-center">
@@ -47,13 +59,25 @@ function Welcome() {
           มาทำความรู้จักคุณ และตั้งเป้าหมายสุขภาพที่เหมาะกับคุณ
         </p>
       </div>
-      <button
-        onClick={() => navigate({ to: "/onboarding" })}
-        className="mt-2 w-full max-w-xs rounded-full bg-card py-3.5 text-base font-extrabold text-primary shadow-[var(--shadow-card)] active:scale-[0.98]"
-      >
-        เริ่มต้น
-      </button>
-      <p className="text-xs font-semibold text-primary-foreground/80">ใช้งานเบื้องต้นได้โดยไม่ต้องสมัครสมาชิก</p>
+      <div className="mt-2 w-full max-w-xs space-y-2.5">
+        <button
+          onClick={() => navigate({ to: "/onboarding" })}
+          className="w-full rounded-full bg-card py-3.5 text-base font-extrabold text-primary shadow-[var(--shadow-card)] active:scale-[0.98]"
+        >
+          เริ่มต้น
+        </button>
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={signingIn}
+          className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary-foreground/40 py-3 text-sm font-extrabold text-primary-foreground active:scale-[0.98] disabled:opacity-60"
+        >
+          <span className="grid size-5 place-items-center rounded-full bg-primary-foreground text-[11px] font-black text-primary">
+            G
+          </span>
+          {signingIn ? "กำลังไปที่ Google..." : "เข้าสู่ระบบด้วย Google"}
+        </button>
+      </div>
+      <p className="text-xs font-semibold text-primary-foreground/80">สำหรับผู้ที่มีบัญชีหรือเคยใช้งานแล้ว กดเข้าสู่ระบบได้เลย</p>
     </main>
   );
 }
