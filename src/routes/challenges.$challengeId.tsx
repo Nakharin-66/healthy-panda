@@ -76,7 +76,7 @@ function Detail() {
   return <DetailBody c={c} profileId={profile?.id} board={board} />;
 }
 
-function DetailBody({ c, profileId, board }: { c: ChallengeRow; profileId?: string; board: ReturnType<typeof useBoard> }) {
+function DetailBody({ c, profileId, board }: { c: ChallengeRow; profileId?: string | undefined; board: ReturnType<typeof useBoard> }) {
   const navigate = useNavigate();
   const m = metricInfo(c.metric);
   const join = useJoinChallenge();
@@ -122,11 +122,11 @@ function DetailBody({ c, profileId, board }: { c: ChallengeRow; profileId?: stri
     else { await navigator.clipboard.writeText(text); toast.success("คัดลอกข้อความเชิญแล้ว"); }
   };
 
-  const submitManual = () => {
+  const submitManual = (): void => {
     const v = Number(value);
-    if (value.trim() === "" || !Number.isFinite(v)) return toast.error("กรุณากรอกค่า");
-    if (v < 0) return toast.error("ค่าต้องไม่ติดลบ");
-    if (v > m.max) return toast.error(`ค่าสูงสุดต่อวันคือ ${m.max.toLocaleString("th-TH")} ${m.unit}`);
+    if (value.trim() === "" || !Number.isFinite(v)) { toast.error("กรุณากรอกค่า"); return; }
+    if (v < 0) { toast.error("ค่าต้องไม่ติดลบ"); return; }
+    if (v > m.max) { toast.error(`ค่าสูงสุดต่อวันคือ ${m.max.toLocaleString("th-TH")} ${m.unit}`); return; }
     if (!profileId) return;
     saveEntry.mutate({ id: editId, challengeId: c.id, profileId, date, value: v }, {
       onSuccess: () => { toast.success("บันทึกข้อมูลแล้ว"); setValue(""); setEditId(undefined); },
@@ -222,7 +222,7 @@ function DetailBody({ c, profileId, board }: { c: ChallengeRow; profileId?: stri
                       <span className="flex-1 font-bold">{fmtDate(e.data_date)}</span>
                       <span className="font-black">{formatValue(e.value, c.metric)} {m.unit}</span>
                       <button onClick={() => { setEditId(e.id); setDate(e.data_date); setValue(String(e.value)); }} aria-label="แก้ไข" className="rounded-lg bg-muted p-1.5"><Pencil className="size-3.5" /></button>
-                      <button onClick={() => { if (confirm("ลบรายการนี้หรือไม่?")) delEntry.mutate(e.id, { onSuccess: () => toast.success("ลบรายการแล้ว"), onError: err }); }} aria-label="ลบ" className="rounded-lg bg-muted p-1.5 text-destructive"><Trash2 className="size-3.5" /></button>
+                      <button onClick={() => { if (window.confirm("ลบรายการนี้หรือไม่?")) delEntry.mutate(e.id, { onSuccess: () => toast.success("ลบรายการแล้ว"), onError: err }); }} aria-label="ลบ" className="rounded-lg bg-muted p-1.5 text-destructive"><Trash2 className="size-3.5" /></button>
                     </li>
                   ))}
                 </ul>

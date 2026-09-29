@@ -85,7 +85,7 @@ export function challengeErrorMessage(error: unknown): string {
   const raw =
     error instanceof Error ? error.message : typeof error === "object" && error && "message" in error
       ? String((error as { message: unknown }).message) : String(error ?? "");
-  if (raw.includes("duplicate key")) return CHALLENGE_ERROR_TH.duplicate!;
+  if (raw.includes("duplicate key")) return CHALLENGE_ERROR_TH["duplicate"]!;
   for (const key of Object.keys(CHALLENGE_ERROR_TH)) if (raw.includes(key)) return CHALLENGE_ERROR_TH[key]!;
   return "ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง";
 }
@@ -280,7 +280,7 @@ export function useManualEntries(id?: string, enabled = true) {
 export function useSaveManualEntry() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (i: { id?: string; challengeId: string; profileId: string; date: string; value: number }) => {
+    mutationFn: async (i: { id?: string | undefined; challengeId: string; profileId: string; date: string; value: number }) => {
       if (i.id) {
         const { error } = await supabase
           .from("challenge_data_entries")

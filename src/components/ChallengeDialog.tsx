@@ -59,15 +59,15 @@ export function ChallengeDialog({
   const info = metricInfo(metric);
   const pending = create.isPending || update.isPending;
 
-  const submit = () => {
+  const submit = (): void => {
     const t = Number(target);
-    if (!title.trim()) return toast.error("กรุณาตั้งชื่อชาเลนจ์");
+    if (!title.trim()) { toast.error("กรุณาตั้งชื่อชาเลนจ์"); return; }
     if (!locked) {
-      if (!Number.isFinite(t) || t <= 0) return toast.error("กรุณาระบุเป้าหมายให้มากกว่า 0");
-      if (!startDate || !endDate || !startTime || !endTime) return toast.error("กรุณากำหนดวันและเวลาให้ครบ");
-      if (endDate < startDate) return toast.error("วันสิ้นสุดต้องไม่น้อยกว่าวันเริ่มต้น");
+      if (!Number.isFinite(t) || t <= 0) { toast.error("กรุณาระบุเป้าหมายให้มากกว่า 0"); return; }
+      if (!startDate || !endDate || !startTime || !endTime) { toast.error("กรุณากำหนดวันและเวลาให้ครบ"); return; }
+      if (endDate < startDate) { toast.error("วันสิ้นสุดต้องไม่น้อยกว่าวันเริ่มต้น"); return; }
       if (new Date(bkkToIso(endDate, endTime)) <= new Date(bkkToIso(startDate, startTime)))
-        return toast.error("เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น");
+        { toast.error("เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น"); return; }
     }
     const input = {
       title: title.trim(),
