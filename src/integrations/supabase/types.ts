@@ -602,6 +602,30 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       exercise_goals: {
         Row: {
           created_at: string
@@ -1022,6 +1046,39 @@ export type Database = {
           },
         ]
       }
+      health_data: {
+        Row: {
+          calories_burned: number | null
+          created_at: string | null
+          date: string
+          heart_rate: number | null
+          id: number
+          sleep_data: number | null
+          step_count: number | null
+          user_id: string
+        }
+        Insert: {
+          calories_burned?: number | null
+          created_at?: string | null
+          date: string
+          heart_rate?: number | null
+          id?: number
+          sleep_data?: number | null
+          step_count?: number | null
+          user_id: string
+        }
+        Update: {
+          calories_burned?: number | null
+          created_at?: string | null
+          date?: string
+          heart_rate?: number | null
+          id?: number
+          sleep_data?: number | null
+          step_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_devices: {
         Row: {
           app_version: string | null
@@ -1132,6 +1189,24 @@ export type Database = {
           },
         ]
       }
+      n8n_chat_histories: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -1194,7 +1269,7 @@ export type Database = {
           target_weight_kg: number | null
           timezone: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           weight_kg: number | null
         }
         Insert: {
@@ -1214,7 +1289,7 @@ export type Database = {
           target_weight_kg?: number | null
           timezone?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           weight_kg?: number | null
         }
         Update: {
@@ -1234,7 +1309,7 @@ export type Database = {
           target_weight_kg?: number | null
           timezone?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           weight_kg?: number | null
         }
         Relationships: []
@@ -1562,6 +1637,15 @@ export type Database = {
           privacy_level: Database["public"]["Enums"]["privacy_level"]
           profile_id: string
           request_status: string
+        }[]
+      }
+      match_documents: {
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
         }[]
       }
       personal_daily_target: {
