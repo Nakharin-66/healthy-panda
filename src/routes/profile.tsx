@@ -562,9 +562,11 @@ function Profile() {
               </button>
               <button
                 onClick={async () => {
+                  await queryClient.cancelQueries();
+                  queryClient.clear();
                   await supabase.auth.signOut();
                   setSignOutOpen(false);
-                  navigate({ to: "/auth" });
+                  navigate({ to: "/", replace: true });
                 }}
                 className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-extrabold text-destructive-foreground"
               >
