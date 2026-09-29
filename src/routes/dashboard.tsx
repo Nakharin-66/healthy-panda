@@ -4,6 +4,7 @@ import { AppScreen } from "@/components/BottomNav";
 import { PandaHeader } from "@/components/PandaHeader";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { useAuth } from "@/hooks/useAuth";
+import { readGuest, starterGoals } from "@/lib/guest";
 import {
   useProfile,
   useGoals,

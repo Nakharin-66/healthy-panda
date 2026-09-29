@@ -16,6 +16,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ScanRouteImport } from './routes/scan'
@@ -59,6 +60,11 @@ const GoalsRoute = GoalsRouteImport.update({
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRouteWithChildren
   '/goals': typeof GoalsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/scan': typeof ScanRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/goals'
     | '/leaderboard'
+    | '/onboarding'
     | '/privacy'
     | '/profile'
     | '/scan'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/goals'
     | '/leaderboard'
+    | '/onboarding'
     | '/privacy'
     | '/profile'
     | '/scan'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/goals'
     | '/leaderboard'
+    | '/onboarding'
     | '/privacy'
     | '/profile'
     | '/scan'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRouteWithChildren
   GoalsRoute: typeof GoalsRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  OnboardingRoute: typeof OnboardingRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ScanRoute: typeof ScanRoute
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboard'
       fullPath: '/leaderboard'
       preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRouteWithChildren,
   GoalsRoute: GoalsRoute,
   LeaderboardRoute: LeaderboardRoute,
+  OnboardingRoute: OnboardingRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ScanRoute: ScanRoute,
