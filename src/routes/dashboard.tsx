@@ -4,6 +4,7 @@ import { AppScreen } from "@/components/BottomNav";
 import { PandaHeader } from "@/components/PandaHeader";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { useAuth } from "@/hooks/useAuth";
+import { readGuest, starterGoals } from "@/lib/guest";
 import {
   useProfile,
   useGoals,
@@ -204,9 +205,28 @@ function Dashboard() {
   ];
 
   if (!loading && !signedIn) {
+    const guest = readGuest();
+    const rec = guest?.completed ? starterGoals(guest) : null;
     return (
       <AppScreen>
-        <PandaHeader title="สวัสดี!" subtitle="เริ่มต้นใช้งาน Healthy Panda 🐼" />
+        <PandaHeader
+          title={`สวัสดี, ${guest?.nickname || "เพื่อนแพนด้า"}!`}
+          subtitle="โหมดทดลองใช้ ยังไม่มีการบันทึกข้อมูลสุขภาพ 🐼"
+        />
+        {rec ? (
+          <section className="card-soft mb-4 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-extrabold">เป้าหมายเริ่มต้นของคุณ</h2>
+              <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-[11px] font-extrabold text-primary">คำแนะนำเบื้องต้น</span>
+            </div>
+            <ul className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <li className="rounded-2xl bg-secondary p-3"><p className="text-base font-black">{rec.steps.toLocaleString("th-TH")}</p><p className="text-[11px] font-semibold text-muted-foreground">ก้าว/วัน</p></li>
+              <li className="rounded-2xl bg-secondary p-3"><p className="text-base font-black">{(rec.water_ml / 1000).toFixed(1)} ล.</p><p className="text-[11px] font-semibold text-muted-foreground">น้ำ/วัน</p></li>
+              <li className="rounded-2xl bg-secondary p-3"><p className="text-base font-black">{rec.exercise_min_week}</p><p className="text-[11px] font-semibold text-muted-foreground">นาที/สัปดาห์</p></li>
+            </ul>
+            <p className="mt-3 text-xs font-semibold text-muted-foreground">ยังไม่มีข้อมูลกิจกรรมวันนี้ เข้าสู่ระบบเพื่อเริ่มบันทึกจริง</p>
+          </section>
+        ) : null}
         <SignInPrompt />
       </AppScreen>
     );
