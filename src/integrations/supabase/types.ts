@@ -304,6 +304,63 @@ export type Database = {
           },
         ]
       }
+      challenge_data_entries: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          data_date: string
+          id: string
+          profile_id: string
+          source: string
+          source_provider: string | null
+          source_record_id: string | null
+          unit: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          data_date: string
+          id?: string
+          profile_id: string
+          source: string
+          source_provider?: string | null
+          source_record_id?: string | null
+          unit?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          data_date?: string
+          id?: string
+          profile_id?: string
+          source?: string
+          source_provider?: string | null
+          source_record_id?: string | null
+          unit?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_data_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_data_entries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_invites: {
         Row: {
           challenge_id: string
@@ -311,6 +368,7 @@ export type Database = {
           id: string
           invitee_profile_id: string
           inviter_profile_id: string
+          responded_at: string | null
           status: Database["public"]["Enums"]["challenge_invite_status"]
           updated_at: string
         }
@@ -320,6 +378,7 @@ export type Database = {
           id?: string
           invitee_profile_id: string
           inviter_profile_id: string
+          responded_at?: string | null
           status?: Database["public"]["Enums"]["challenge_invite_status"]
           updated_at?: string
         }
@@ -329,6 +388,7 @@ export type Database = {
           id?: string
           invitee_profile_id?: string
           inviter_profile_id?: string
+          responded_at?: string | null
           status?: Database["public"]["Enums"]["challenge_invite_status"]
           updated_at?: string
         }
@@ -362,10 +422,15 @@ export type Database = {
           completed: boolean
           completed_at: string | null
           created_at: string
+          hidden_at: string | null
           id: string
+          joined_at: string
+          last_source: string | null
+          last_synced_at: string | null
           profile_id: string
           progress: number
           score: number
+          status: string
           updated_at: string
         }
         Insert: {
@@ -373,10 +438,15 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          hidden_at?: string | null
           id?: string
+          joined_at?: string
+          last_source?: string | null
+          last_synced_at?: string | null
           profile_id: string
           progress?: number
           score?: number
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -384,10 +454,15 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          hidden_at?: string | null
           id?: string
+          joined_at?: string
+          last_source?: string | null
+          last_synced_at?: string | null
           profile_id?: string
           progress?: number
           score?: number
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -412,7 +487,9 @@ export type Database = {
           category: Database["public"]["Enums"]["challenge_category"]
           challenge_code: string
           created_at: string
+          deleted_at: string | null
           description: string | null
+          end_at: string
           end_date: string
           goal_mode: Database["public"]["Enums"]["challenge_goal_mode"]
           icon: string | null
@@ -425,6 +502,7 @@ export type Database = {
           participation_visibility: Database["public"]["Enums"]["challenge_participation"]
           reward_points: number
           scoring_type: Database["public"]["Enums"]["challenge_scoring_type"]
+          start_at: string
           start_date: string
           status: Database["public"]["Enums"]["challenge_status"]
           target_source: Database["public"]["Enums"]["challenge_target_source"]
@@ -437,7 +515,9 @@ export type Database = {
           category?: Database["public"]["Enums"]["challenge_category"]
           challenge_code?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
+          end_at?: string
           end_date: string
           goal_mode?: Database["public"]["Enums"]["challenge_goal_mode"]
           icon?: string | null
@@ -450,6 +530,7 @@ export type Database = {
           participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
           scoring_type?: Database["public"]["Enums"]["challenge_scoring_type"]
+          start_at?: string
           start_date?: string
           status?: Database["public"]["Enums"]["challenge_status"]
           target_source?: Database["public"]["Enums"]["challenge_target_source"]
@@ -462,7 +543,9 @@ export type Database = {
           category?: Database["public"]["Enums"]["challenge_category"]
           challenge_code?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
+          end_at?: string
           end_date?: string
           goal_mode?: Database["public"]["Enums"]["challenge_goal_mode"]
           icon?: string | null
@@ -475,6 +558,7 @@ export type Database = {
           participation_visibility?: Database["public"]["Enums"]["challenge_participation"]
           reward_points?: number
           scoring_type?: Database["public"]["Enums"]["challenge_scoring_type"]
+          start_at?: string
           start_date?: string
           status?: Database["public"]["Enums"]["challenge_status"]
           target_source?: Database["public"]["Enums"]["challenge_target_source"]
@@ -1439,6 +1523,37 @@ export type Database = {
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       can_view_avatar_folder: { Args: { _folder: string }; Returns: boolean }
       can_view_challenge: { Args: { _challenge_id: string }; Returns: boolean }
+      challenge_board: {
+        Args: { _challenge_id: string }
+        Returns: {
+          display_name: string
+          is_friend: boolean
+          is_self: boolean
+          picture_url: string
+          profile_id: string
+          rank: number
+          value: number
+          visible: boolean
+        }[]
+      }
+      challenge_by_code: { Args: { _code: string }; Returns: string }
+      challenge_create: {
+        Args: {
+          _board: Database["public"]["Enums"]["challenge_board_visibility"]
+          _description: string
+          _end_at: string
+          _metric: string
+          _participation: Database["public"]["Enums"]["challenge_participation"]
+          _start_at: string
+          _target: number
+          _title: string
+        }
+        Returns: {
+          challenge_code: string
+          id: string
+        }[]
+      }
+      challenge_delete: { Args: { _challenge_id: string }; Returns: undefined }
       challenge_detail: {
         Args: { _challenge_id: string }
         Returns: Database["public"]["CompositeTypes"]["challenge_view"][]
@@ -1457,6 +1572,26 @@ export type Database = {
         Args: { _challenge_id: string; _profile_id: string }
         Returns: number
       }
+      challenge_hide: { Args: { _challenge_id: string }; Returns: undefined }
+      challenge_invites_detail: {
+        Args: never
+        Returns: {
+          challenge_id: string
+          counterpart_id: string
+          counterpart_name: string
+          counterpart_picture: string
+          created_at: string
+          direction: string
+          end_at: string
+          id: string
+          metric: string
+          start_at: string
+          status: Database["public"]["Enums"]["challenge_invite_status"]
+          target_value: number
+          title: string
+          unit: string
+        }[]
+      }
       challenge_leaderboard: {
         Args: { _challenge_id: string; _friends_only?: boolean }
         Returns: {
@@ -1470,6 +1605,35 @@ export type Database = {
           score: number
         }[]
       }
+      challenge_list: {
+        Args: { _include_hidden?: boolean }
+        Returns: {
+          challenge_code: string
+          description: string
+          end_at: string
+          hidden: boolean
+          id: string
+          invited: boolean
+          is_owner: boolean
+          joined: boolean
+          last_source: string
+          last_synced_at: string
+          leaderboard_visibility: Database["public"]["Enums"]["challenge_board_visibility"]
+          metric: string
+          my_rank: number
+          my_value: number
+          owner_name: string
+          owner_picture: string
+          owner_profile_id: string
+          participant_count: number
+          participation_visibility: Database["public"]["Enums"]["challenge_participation"]
+          start_at: string
+          state: string
+          target_value: number
+          title: string
+          unit: string
+        }[]
+      }
       challenge_metric_daily: {
         Args: {
           _from: string
@@ -1481,6 +1645,38 @@ export type Database = {
           d: string
           v: number
         }[]
+      }
+      challenge_recompute: {
+        Args: { _challenge_id: string; _profile_id: string }
+        Returns: undefined
+      }
+      challenge_series: {
+        Args: { _challenge_id: string }
+        Returns: {
+          d: string
+          device: number
+          manual: number
+          used: number
+        }[]
+      }
+      challenge_state: {
+        Args: { _c: Database["public"]["Tables"]["challenges"]["Row"] }
+        Returns: string
+      }
+      challenge_sync_device: { Args: { _challenge_id: string }; Returns: Json }
+      challenge_update: {
+        Args: {
+          _board: Database["public"]["Enums"]["challenge_board_visibility"]
+          _challenge_id: string
+          _description: string
+          _end_at: string
+          _metric: string
+          _participation: Database["public"]["Enums"]["challenge_participation"]
+          _start_at: string
+          _target: number
+          _title: string
+        }
+        Returns: undefined
       }
       compute_challenge_progress: {
         Args: { _challenge_id: string; _profile_id: string }
@@ -1510,7 +1706,9 @@ export type Database = {
           category: Database["public"]["Enums"]["challenge_category"]
           challenge_code: string
           created_at: string
+          deleted_at: string | null
           description: string | null
+          end_at: string
           end_date: string
           goal_mode: Database["public"]["Enums"]["challenge_goal_mode"]
           icon: string | null
@@ -1523,6 +1721,7 @@ export type Database = {
           participation_visibility: Database["public"]["Enums"]["challenge_participation"]
           reward_points: number
           scoring_type: Database["public"]["Enums"]["challenge_scoring_type"]
+          start_at: string
           start_date: string
           status: Database["public"]["Enums"]["challenge_status"]
           target_source: Database["public"]["Enums"]["challenge_target_source"]
