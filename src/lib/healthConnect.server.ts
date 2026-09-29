@@ -11,6 +11,7 @@ export const HEALTH_METRICS = [
   "hydration_ml",
   "weight_kg",
   "distance_km",
+  "exercise_minutes",
 ] as const;
 
 export type HealthMetric = (typeof HEALTH_METRICS)[number];
