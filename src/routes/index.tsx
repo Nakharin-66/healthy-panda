@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import mascot from "@/assets/panda-mascot.png";
 import { useAuth } from "@/hooks/useAuth";
-import { readGuest } from "@/lib/guest";
+import { readGuest, signInWithGoogle } from "@/lib/guest";
 
 export const Route = createFileRoute("/")({
   head: () => ({
