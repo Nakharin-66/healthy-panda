@@ -1338,6 +1338,7 @@ export type Database = {
       profiles: {
         Row: {
           activity_level: Database["public"]["Enums"]["activity_level"]
+          age: number | null
           birthday: string | null
           created_at: string
           display_name: string
@@ -1348,7 +1349,9 @@ export type Database = {
           id: string
           language: string
           line_user_id: string | null
+          onboarding_completed: boolean
           picture_url: string | null
+          primary_goal: string | null
           streak_days: number
           target_weight_kg: number | null
           timezone: string
@@ -1358,6 +1361,7 @@ export type Database = {
         }
         Insert: {
           activity_level?: Database["public"]["Enums"]["activity_level"]
+          age?: number | null
           birthday?: string | null
           created_at?: string
           display_name?: string
@@ -1368,7 +1372,9 @@ export type Database = {
           id?: string
           language?: string
           line_user_id?: string | null
+          onboarding_completed?: boolean
           picture_url?: string | null
+          primary_goal?: string | null
           streak_days?: number
           target_weight_kg?: number | null
           timezone?: string
@@ -1378,6 +1384,7 @@ export type Database = {
         }
         Update: {
           activity_level?: Database["public"]["Enums"]["activity_level"]
+          age?: number | null
           birthday?: string | null
           created_at?: string
           display_name?: string
@@ -1388,7 +1395,9 @@ export type Database = {
           id?: string
           language?: string
           line_user_id?: string | null
+          onboarding_completed?: boolean
           picture_url?: string | null
+          primary_goal?: string | null
           streak_days?: number
           target_weight_kg?: number | null
           timezone?: string
