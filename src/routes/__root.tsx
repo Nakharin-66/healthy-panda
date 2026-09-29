@@ -142,7 +142,7 @@ function RootComponent() {
         closeAuthModal();
         // Safety net: persist guest onboarding if sign-in finished outside /auth.
         syncGuestToProfile()
-          .then((saved) => saved && queryClient.invalidateQueries({ queryKey: ["profile"] }))
+          .then((saved) => { if (saved) void queryClient.invalidateQueries({ queryKey: ["profile"] }); })
           .catch(console.error);
       }
       router.invalidate();
