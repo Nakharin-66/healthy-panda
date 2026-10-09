@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import mascot from "@/assets/panda-avatar.png";
-import { GoogleButton } from "@/components/AuthModal";
-import { syncGuestToProfile, takeReturnTo } from "@/lib/guest";
+import { GoogleButton, LineButton } from "@/components/AuthModal";
+import { oauthErrorMessage, syncGuestToProfile, takeReturnTo } from "@/lib/guest";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -34,9 +34,14 @@ function AuthScreen() {
   const done = useRef(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, "") || window.location.search);
-    const err = params.get("error_description") || params.get("error");
-    if (err) toast.error(decodeURIComponent(err.replace(/\+/g, " ")));
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const query = new URLSearchParams(window.location.search);
+    const code = hash.get("error") || query.get("error");
+    const desc = hash.get("error_description") || query.get("error_description");
+    if (code || desc) {
+      toast.error(oauthErrorMessage(code, desc ? decodeURIComponent(desc.replace(/\+/g, " ")) : null));
+      window.history.replaceState(null, "", "/auth");
+    }
 
     const finish = async () => {
       if (done.current) return;
@@ -81,7 +86,10 @@ function AuthScreen() {
           {checking ? (
             <p className="py-3 text-sm font-bold text-muted-foreground">กำลังตรวจสอบการเข้าสู่ระบบ...</p>
           ) : (
-            <GoogleButton />
+            <div className="space-y-2">
+              <GoogleButton />
+              <LineButton />
+            </div>
           )}
         </div>
         <button

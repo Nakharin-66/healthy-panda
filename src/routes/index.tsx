@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import mascot from "@/assets/panda-mascot.png";
 import { useAuth } from "@/hooks/useAuth";
-import { readGuest, signInWithGoogle } from "@/lib/guest";
+import { oauthErrorMessage, readGuest, signInWithGoogle, signInWithLine } from "@/lib/guest";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,6 +46,17 @@ function Welcome() {
     }
   };
 
+  const [lineBusy, setLineBusy] = useState(false);
+  const handleLineSignIn = async () => {
+    setLineBusy(true);
+    try {
+      await signInWithLine("/dashboard");
+    } catch (err) {
+      setLineBusy(false);
+      toast.error(oauthErrorMessage(null, err instanceof Error ? err.message : null));
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-primary px-6 text-center">
       <div className="grid size-56 place-items-center rounded-full bg-primary-foreground/15 animate-in fade-in zoom-in-75 duration-700">
@@ -75,6 +86,16 @@ function Welcome() {
             G
           </span>
           {signingIn ? "กำลังไปที่ Google..." : "เข้าสู่ระบบด้วย Google"}
+        </button>
+        <button
+          onClick={handleLineSignIn}
+          disabled={lineBusy}
+          className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary-foreground/40 py-3 text-sm font-extrabold text-primary-foreground active:scale-[0.98] disabled:opacity-60"
+        >
+          <span className="grid h-5 place-items-center rounded-md bg-primary-foreground px-1 text-[9px] font-black text-primary">
+            LINE
+          </span>
+          {lineBusy ? "กำลังไปที่ LINE..." : "เข้าสู่ระบบด้วย LINE"}
         </button>
       </div>
       <p className="text-xs font-semibold text-primary-foreground/80">สำหรับผู้ที่มีบัญชีหรือเคยใช้งานแล้ว กดเข้าสู่ระบบได้เลย</p>
