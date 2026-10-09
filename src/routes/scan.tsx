@@ -66,7 +66,7 @@ function resizeToBase64(file: File): Promise<string> {
   });
 }
 
-type FoodResult = Record<string, unknown>;
+type FoodResult = { foodName?: unknown; calories?: unknown; protein?: unknown; carbs?: unknown; fat?: unknown; balance?: unknown };
 
 function show(v: unknown): string {
   if (v === undefined || v === null || v === "") return "-";
