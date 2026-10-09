@@ -1,30 +1,52 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import mascot from "@/assets/panda-avatar.png";
-import { closeAuthModal, signInWithGoogle, useAuthModalOpen } from "@/lib/guest";
+import { closeAuthModal, oauthErrorMessage, signInWithGoogle, signInWithLine, useAuthModalOpen } from "@/lib/guest";
 
-export function GoogleButton({ label = "ดำเนินการต่อด้วย Google" }: { label?: string }) {
+function useOAuthClick(fn: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (err) {
+      toast.error(oauthErrorMessage(null, err instanceof Error ? err.message : null));
+      setBusy(false);
+    }
+  };
+  return { busy, run };
+}
+
+export function GoogleButton({ label = "ดำเนินการต่อด้วย Google", returnTo }: { label?: string; returnTo?: string }) {
+  const { busy, run } = useOAuthClick(() => signInWithGoogle(returnTo));
   return (
     <button
       type="button"
       disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await signInWithGoogle();
-        } catch (err) {
-          const m = err instanceof Error ? err.message : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ";
-          toast.error(m.toLowerCase().includes("not enabled") ? "ยังไม่ได้เปิดใช้งาน Google ใน Supabase" : m);
-          setBusy(false);
-        }
-      }}
+      onClick={run}
       className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card py-3.5 text-sm font-extrabold active:scale-[0.98] disabled:opacity-60"
     >
       <span className="grid size-5 place-items-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
         G
       </span>
       {busy ? "กำลังไปที่ Google..." : label}
+    </button>
+  );
+}
+
+export function LineButton({ label = "เข้าสู่ระบบด้วย LINE", returnTo }: { label?: string; returnTo?: string }) {
+  const { busy, run } = useOAuthClick(() => signInWithLine(returnTo));
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={run}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card py-3.5 text-sm font-extrabold active:scale-[0.98] disabled:opacity-60"
+    >
+      <span className="grid h-5 place-items-center rounded-md bg-primary px-1 text-[9px] font-black text-primary-foreground">
+        LINE
+      </span>
+      {busy ? "กำลังไปที่ LINE..." : label}
     </button>
   );
 }
@@ -50,6 +72,7 @@ export function AuthModal() {
         </p>
         <div className="mt-5 space-y-2">
           <GoogleButton />
+          <LineButton />
           <button onClick={closeAuthModal} className="w-full py-2 text-xs font-bold text-muted-foreground">
             ไว้ทีหลัง
           </button>

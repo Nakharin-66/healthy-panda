@@ -94,11 +94,15 @@ function safePath(p: string | null | undefined) {
   return p;
 }
 
-export async function signInWithGoogle(returnTo?: string) {
+function rememberReturnTo(returnTo?: string) {
   window.sessionStorage.setItem(
     RETURN_KEY,
     safePath(returnTo ?? window.location.pathname + window.location.search),
   );
+}
+
+export async function signInWithGoogle(returnTo?: string) {
+  rememberReturnTo(returnTo);
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -107,6 +111,28 @@ export async function signInWithGoogle(returnTo?: string) {
     },
   });
   if (error) throw error;
+}
+
+/** LINE via Supabase Custom OAuth provider (secret lives in Supabase only). */
+export async function signInWithLine(returnTo?: string) {
+  rememberReturnTo(returnTo);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "custom:line-login" as Parameters<typeof supabase.auth.signInWithOAuth>[0]["provider"],
+    options: { redirectTo: `${window.location.origin}/auth` },
+  });
+  if (error) throw error;
+}
+
+/** Map OAuth callback errors (cancel/denied/failure) to Thai messages. */
+export function oauthErrorMessage(code: string | null, description: string | null) {
+  const c = (code ?? "").toLowerCase();
+  const d = (description ?? "").toLowerCase();
+  if (c === "access_denied" || d.includes("cancel") || d.includes("denied"))
+    return "คุณยกเลิกการเข้าสู่ระบบ ลองใหม่ได้ทุกเมื่อ";
+  if (d.includes("not enabled") || d.includes("unsupported provider"))
+    return "ผู้ให้บริการเข้าสู่ระบบนี้ยังไม่ได้เปิดใช้งานใน Supabase";
+  if (d.includes("redirect")) return "ที่อยู่กลับหลังเข้าสู่ระบบยังไม่ได้รับอนุญาตใน Supabase";
+  return description ? `เข้าสู่ระบบไม่สำเร็จ: ${description}` : "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่";
 }
 
 export function takeReturnTo() {
