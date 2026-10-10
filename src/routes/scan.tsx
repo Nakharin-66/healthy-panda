@@ -14,7 +14,12 @@ import {
   type Nutrition,
 } from "@/lib/food";
 import { analyzeFoodImage } from "@/lib/food/analyze.functions";
-import { AI_DISCLAIMER, NUTRITION_SOURCE_LABEL, type FoodAnalysisResult } from "@/types/food";
+import {
+  AI_DISCLAIMER,
+  NUTRITION_SOURCE_LABEL,
+  type FoodAnalysisNutrients,
+  type FoodAnalysisResult,
+} from "@/types/food";
 import {
   ArrowLeft,
   Camera,
@@ -60,9 +65,15 @@ interface EditableRow {
   quantity: number;
   unit: string;
   confidence: number | null;
+  /** Complete nutrition (all core values present) — required to save. */
   nutrition: Nutrition | null;
+  /** Raw, possibly partial nutrients as returned by n8n. */
+  raw: FoodAnalysisNutrients | null;
+  extra: Record<string, unknown> | null;
   food_item_id: string | null;
 }
+
+const fmt = (v: number | null | undefined, unit: string) => (v === null || v === undefined ? "—" : `${v} ${unit}`);
 
 function ScanPage() {
   const { signedIn, loading } = useAuth();
@@ -140,33 +151,49 @@ function ScanPage() {
     if (!image) return;
     setAnalyzing(true);
     try {
+      const mime = /^data:([^;,]+);/.exec(image)?.[1] ?? "image/jpeg";
       const res = await analyze({
-        data: { image_base64: image, mime_type: "image/jpeg", locale: "th-TH" },
+        data: { image_base64: image, mime_type: mime, locale: "th-TH" },
       });
       setResult(res);
       setRows(
-        res.foods.map((f, i) => ({
-          key: `${i}-${f.name}`,
-          name: f.name,
-          quantity: f.estimated_quantity,
-          unit: f.estimated_unit,
-          confidence: f.confidence,
-          nutrition: f.estimated_nutrients
-            ? {
-                calories: Math.round(f.estimated_nutrients.calories),
-                protein_g: f.estimated_nutrients.protein_g,
-                carbs_g: f.estimated_nutrients.carbs_g,
-                fat_g: f.estimated_nutrients.fat_g,
-                fiber_g: f.estimated_nutrients.fiber_g ?? 0,
-                sodium_mg: f.estimated_nutrients.sodium_mg ?? 0,
-              }
-            : null,
-          food_item_id: f.matched_food_id,
-        })),
+        res.foods.map((f, i) => {
+          const n = f.estimated_nutrients;
+          const complete =
+            n && n.calories !== null && n.protein_g !== null && n.carbs_g !== null && n.fat_g !== null;
+          return {
+            key: `${i}-${f.name}`,
+            name: f.name,
+            quantity: f.estimated_quantity,
+            unit: f.estimated_unit,
+            confidence: f.confidence,
+            raw: n,
+            extra: f.extra ?? null,
+            nutrition: complete
+              ? {
+                  calories: Math.round(n.calories!),
+                  protein_g: n.protein_g!,
+                  carbs_g: n.carbs_g!,
+                  fat_g: n.fat_g!,
+                  fiber_g: n.fiber_g ?? 0,
+                  sodium_mg: n.sodium_mg ?? 0,
+                }
+              : null,
+            food_item_id: f.matched_food_id,
+          };
+        }),
       );
       setStep("review");
-    } catch {
-      toast.error("ส่งภาพไปวิเคราะห์ไม่สำเร็จ");
+    } catch (err) {
+      console.error("[scan] analyze failed", err);
+      const m = err instanceof Error ? err.message : "";
+      toast.error(
+        m.includes("Unauthorized")
+          ? "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง"
+          : m.includes("too large")
+            ? "รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่เล็กลง"
+            : "ส่งภาพไปวิเคราะห์ไม่สำเร็จ",
+      );
     } finally {
       setAnalyzing(false);
     }
