@@ -388,12 +388,17 @@ function ScanPage() {
 
       {step === "review" ? (
         <div className="space-y-3">
-          {result?.status !== "ok" ? (
+          {result?.status !== "ok" || rows.length === 0 ? (
             <section className="card-soft p-4">
-              <p className="text-sm font-extrabold">ยังไม่ได้เชื่อมต่อระบบวิเคราะห์ภาพด้วย AI</p>
+              <p className="text-sm font-extrabold">
+                {result?.status === "not_configured"
+                  ? "ยังไม่ได้เชื่อมต่อระบบวิเคราะห์ภาพด้วย AI"
+                  : result?.status === "ok"
+                    ? "ไม่พบรายการอาหารจากภาพ"
+                    : "วิเคราะห์ภาพไม่สำเร็จ"}
+              </p>
               <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                {result?.message ??
-                  "ระบบ AI จะเชื่อมต่อในขั้นถัดไป ระหว่างนี้บันทึกอาหารได้โดยค้นหาเมนูจากฐานข้อมูล"}
+                {result?.message ?? "ระหว่างนี้บันทึกอาหารได้โดยค้นหาเมนูจากฐานข้อมูล"}
               </p>
               <Link
                 to="/food/search"
@@ -477,10 +482,24 @@ function ScanPage() {
                       ) : null}
                     </div>
                     <p className="text-[11px] font-bold text-muted-foreground">
-                      {row.nutrition
-                        ? `${row.nutrition.calories} kcal โดยประมาณ · โปรตีน ${row.nutrition.protein_g} ก · คาร์บ ${row.nutrition.carbs_g} ก · ไขมัน ${row.nutrition.fat_g} ก`
-                        : "ไม่พบค่าโภชนาการในฐานข้อมูล กรุณาค้นหาเมนูนี้เพื่อบันทึก"}
+                      {row.raw
+                        ? `${fmt(row.raw.calories, "kcal")} โดยประมาณ · โปรตีน ${fmt(row.raw.protein_g, "ก")} · คาร์บ ${fmt(row.raw.carbs_g, "ก")} · ไขมัน ${fmt(row.raw.fat_g, "ก")} · ใยอาหาร ${fmt(row.raw.fiber_g, "ก")} · โซเดียม ${fmt(row.raw.sodium_mg, "มก")}`
+                        : "ไม่พบค่าโภชนาการ"}
                     </p>
+                    {!row.nutrition ? (
+                      <p className="text-[11px] font-bold text-destructive">
+                        ค่าโภชนาการหลักไม่ครบ รายการนี้จะไม่ถูกบันทึก — กรุณาค้นหาเมนูนี้จากฐานข้อมูล
+                      </p>
+                    ) : null}
+                    {row.extra ? (
+                      <ul className="space-y-0.5 rounded-xl bg-secondary p-2 text-[10px] font-semibold text-muted-foreground">
+                        {Object.entries(row.extra).map(([k, v]) => (
+                          <li key={k}>
+                            {k}: {typeof v === "string" ? v : JSON.stringify(v)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>
