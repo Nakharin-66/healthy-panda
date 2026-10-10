@@ -108,7 +108,11 @@ function normalizeItem(raw: unknown): FoodAnalysisItem | null {
     nutrients = Object.fromEntries(NUTRIENT_KEYS.map((k) => [k, num(src[k])])) as unknown as FoodAnalysisNutrients;
   }
 
-  const extra = Object.fromEntries(Object.entries(r).filter(([k]) => !KNOWN_ITEM.has(k)));
+  const extra: Record<string, string> = Object.fromEntries(
+    Object.entries(r)
+      .filter(([k]) => !KNOWN_ITEM.has(k))
+      .map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]),
+  );
   const conf = num(r["confidence"]);
   return {
     name,

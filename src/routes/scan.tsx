@@ -69,7 +69,7 @@ interface EditableRow {
   nutrition: Nutrition | null;
   /** Raw, possibly partial nutrients as returned by n8n. */
   raw: FoodAnalysisNutrients | null;
-  extra: Record<string, unknown> | null;
+  extra: Record<string, string> | null;
   food_item_id: string | null;
 }
 
@@ -495,7 +495,7 @@ function ScanPage() {
                       <ul className="space-y-0.5 rounded-xl bg-secondary p-2 text-[10px] font-semibold text-muted-foreground">
                         {Object.entries(row.extra).map(([k, v]) => (
                           <li key={k}>
-                            {k}: {typeof v === "string" ? v : JSON.stringify(v)}
+                            {k}: {v}
                           </li>
                         ))}
                       </ul>

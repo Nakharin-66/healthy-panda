@@ -32,7 +32,7 @@ export interface FoodAnalysisItem {
   matched_food_id: string | null;
   estimated_nutrients: FoodAnalysisNutrients | null;
   /** Any additional fields n8n returned, kept for display instead of dropped. */
-  extra?: Record<string, unknown>;
+  extra?: Record<string, string>;
 }
 
 export interface FoodAnalysisResult {
