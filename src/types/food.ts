@@ -12,24 +12,27 @@ export interface FoodAnalysisRequest {
   locale?: string;
 }
 
+/** Any nutrient may be null when n8n cannot estimate it. */
 export interface FoodAnalysisNutrients {
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  fiber_g?: number;
-  sodium_mg?: number;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g?: number | null;
+  sodium_mg?: number | null;
 }
 
 export interface FoodAnalysisItem {
   name: string;
   estimated_quantity: number;
   estimated_unit: string;
-  /** 0..1 */
-  confidence: number;
+  /** 0..1, null when not provided. */
+  confidence: number | null;
   /** food_items.id when n8n matched the menu to the Thai food database. */
   matched_food_id: string | null;
   estimated_nutrients: FoodAnalysisNutrients | null;
+  /** Any additional fields n8n returned, kept for display instead of dropped. */
+  extra?: Record<string, unknown>;
 }
 
 export interface FoodAnalysisResult {
