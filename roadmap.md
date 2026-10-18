@@ -1,7 +1,5 @@
-# AI Coach
-- [x] Use authenticated server-only AI and existing conversation storage.
-- [x] Summarize real health context and validate message limits.
-- [x] Retain failed drafts, add retry, and support mobile composer.
-- [x] Run focused tests and verify available live flows.
-
-Authenticated persistence/reload checks remain blocked: external Supabase sessions cannot be injected into this preview.
+# Current batch
+- [x] Water: quick add, custom amount, today's list, edit/delete, optimistic updates (Bangkok day)
+- [ ] AI Coach conversations (new chat, history, delete, suggestions) — blocked: user declined the database change
+- [x] Scan save shows in today's food history (Bangkok dates)
+- [x] Dashboard quick actions: barcode → goals

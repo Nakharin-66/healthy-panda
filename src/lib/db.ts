@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
 
 export type Profile = Tables<"profiles">;
 export type DailyGoals = Tables<"daily_goals">;
@@ -21,13 +22,11 @@ export const DEFAULT_GOALS = {
 };
 
 function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  return bkkDayStart(bkkDate());
 }
 
 function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  return bkkDate();
 }
 
 /** Returns the current user's profile row, creating it when missing. */
@@ -99,34 +98,100 @@ export function useGoals(profileId?: string) {
   });
 }
 
-export function useTodayWater(profileId?: string) {
+export type WaterEntry = { id: string; amount_ml: number; recorded_at: string };
+export type WaterDay = { total: number; count: number; logs: WaterEntry[] };
+
+function summarizeWater(logs: WaterEntry[]): WaterDay {
+  const sorted = [...logs].sort((a, b) => (a.recorded_at < b.recorded_at ? 1 : -1));
+  return { logs: sorted, total: sorted.reduce((s, r) => s + r.amount_ml, 0), count: sorted.length };
+}
+
+const waterKey = (profileId?: string, date = bkkDate()) => ["water_logs", profileId, date];
+
+/** Water logs of one Bangkok calendar day (default: today), newest first. */
+export function useTodayWater(profileId?: string, date = bkkDate()) {
   return useQuery({
-    queryKey: ["water_logs", profileId],
+    queryKey: waterKey(profileId, date),
     enabled: !!profileId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("water_logs")
-        .select("amount_ml, recorded_at")
+        .select("id, amount_ml, recorded_at")
         .eq("profile_id", profileId!)
-        .gte("recorded_at", startOfToday())
+        .gte("recorded_at", bkkDayStart(date))
+        .lte("recorded_at", bkkDayEnd(date))
         .order("recorded_at", { ascending: false });
       if (error) throw error;
-      const total = (data ?? []).reduce((sum, row) => sum + row.amount_ml, 0);
-      return { total, count: data?.length ?? 0 };
+      return summarizeWater(data ?? []);
     },
   });
 }
 
-export function useAddWater(profileId?: string) {
+function useWaterMutation<V>(
+  profileId: string | undefined,
+  run: (v: V) => Promise<void>,
+  apply: (logs: WaterEntry[], v: V) => WaterEntry[],
+) {
   const qc = useQueryClient();
+  const key = waterKey(profileId);
   return useMutation({
-    mutationFn: async (amount_ml: number) => {
+    mutationFn: async (v: V) => {
       if (!profileId) throw new Error("no profile");
-      const { error } = await supabase.from("water_logs").insert({ profile_id: profileId, amount_ml });
+      await run(v);
+    },
+    onMutate: async (v: V) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<WaterDay>(key);
+      qc.setQueryData<WaterDay>(key, summarizeWater(apply(prev?.logs ?? [], v)));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["water_logs"] }),
+  });
+}
+
+export function useAddWater(profileId?: string) {
+  return useWaterMutation<number>(
+    profileId,
+    async (amount_ml) => {
+      const { error } = await supabase.from("water_logs").insert({ profile_id: profileId!, amount_ml });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["water_logs"] }),
-  });
+    (logs, amount_ml) => [
+      { id: `local-${Date.now()}`, amount_ml, recorded_at: new Date().toISOString() },
+      ...logs,
+    ],
+  );
+}
+
+export function useUpdateWater(profileId?: string) {
+  return useWaterMutation<{ id: string; amount_ml: number; recorded_at: string }>(
+    profileId,
+    async ({ id, amount_ml, recorded_at }) => {
+      const { error } = await supabase
+        .from("water_logs")
+        .update({ amount_ml, recorded_at })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    (logs, v) =>
+      logs
+        .map((l) => (l.id === v.id ? { ...l, ...v } : l))
+        .filter((l) => bkkDate(l.recorded_at) === bkkDate()),
+  );
+}
+
+export function useDeleteWater(profileId?: string) {
+  return useWaterMutation<string>(
+    profileId,
+    async (id) => {
+      const { error } = await supabase.from("water_logs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    (logs, id) => logs.filter((l) => l.id !== id),
+  );
 }
 
 export function useTodayFood(profileId?: string) {

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { AppScreen } from "@/components/BottomNav";
 import { PandaHeader } from "@/components/PandaHeader";
+import { WaterTracker } from "@/components/WaterTracker";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { useAuth } from "@/hooks/useAuth";
 import { readGuest, starterGoals } from "@/lib/guest";
@@ -9,7 +10,6 @@ import {
   useProfile,
   useGoals,
   useTodayWater,
-  useAddWater,
   useTodayFood,
   useLatestVitals,
   DEFAULT_GOALS,
@@ -28,9 +28,7 @@ import {
   Footprints,
   ScanLine,
   Dumbbell,
-  Barcode,
-  GlassWater,
-  Plus,
+  Target,
   Route as Route2,
 } from "lucide-react";
 
@@ -132,7 +130,6 @@ function Dashboard() {
   const { data: water } = useTodayWater(profileId);
   const { data: food } = useTodayFood(profileId);
   const { data: vitals } = useLatestVitals(profileId);
-  const addWater = useAddWater(profileId);
   const { data: activityLogs } = useActivityLogs(profileId, 30);
   useActivityRealtime(profileId);
 
@@ -334,36 +331,7 @@ function Dashboard() {
         </Link>
       )}
 
-      <section className="card-soft mb-4 p-4">
-        <div className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-2xl bg-info-soft text-info">
-            <GlassWater className="size-6" strokeWidth={2.3} />
-          </span>
-          <div className="flex-1">
-            <p className="text-sm font-extrabold">การดื่มน้ำ</p>
-            <p className="text-xs font-bold text-muted-foreground">
-              {waterMl} / {waterGoal} ml
-            </p>
-          </div>
-          <button
-            onClick={() => addWater.mutate(250)}
-            disabled={addWater.isPending || !profileId}
-            className="flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95 disabled:opacity-60"
-          >
-            <Plus className="size-3.5" /> 250ml
-          </button>
-        </div>
-        <div className="mt-3 flex gap-1.5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-8 flex-1 rounded-lg border-2 border-info/25 ${
-                i < Math.round((waterMl / waterGoal) * 10) ? "bg-info/70" : "bg-info-soft"
-              }`}
-            />
-          ))}
-        </div>
-      </section>
+      <WaterTracker profileId={profileId} goal={waterGoal} />
 
       <section>
         <h2 className="mb-2 text-sm font-extrabold text-muted-foreground">ทำงานด่วน</h2>
@@ -371,7 +339,7 @@ function Dashboard() {
           {[
             { to: "/scan", label: "สแกนอาหาร", icon: ScanLine },
             { to: "/goals", label: "บันทึกออกกำลังกาย", icon: Dumbbell },
-            { to: "/scan", label: "สแกนบาร์โค้ด", icon: Barcode },
+            { to: "/goals", label: "เป้าหมาย", icon: Target },
           ].map(({ to, label, icon: Icon }) => (
             <Link
               key={label}

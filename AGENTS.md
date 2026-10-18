@@ -14,3 +14,4 @@
 
 - Coach chat uses a single database conversation and an authenticated server function; history and health context are loaded server-side to prevent client-supplied health records or cross-user history.
 - Coach uses AI Elements message/composer primitives with a final-result server-function contract; upstream generation is streamed and consumed server-side because this feature returns a reply DTO.
+- Day boundaries use Asia/Bangkok via src/lib/bkk.ts; why: UTC slicing put early-morning Thai entries on the previous day.
