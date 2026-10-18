@@ -14,7 +14,11 @@ export type ChatPage = {
  * oldest-first for rendering. Pass `before` (a `created_at` ISO string) to
  * page further back — this is what makes history effectively infinite.
  */
-export async function fetchChatPage(profileId: string, before?: string | null, since?: string | null): Promise<ChatPage> {
+export async function fetchChatPage(
+  profileId: string,
+  before?: string | null,
+  since?: string | null,
+): Promise<ChatPage> {
   let q = supabase
     .from("ai_conversations")
     .select("*")
@@ -31,7 +35,8 @@ export async function fetchChatPage(profileId: string, before?: string | null, s
 
   const rows = data ?? [];
   const messages = rows.map(rowToMessage).reverse();
-  const nextCursor = rows.length === CHAT_PAGE_SIZE ? (rows[rows.length - 1]?.created_at ?? null) : null;
+  const nextCursor =
+    rows.length === CHAT_PAGE_SIZE ? (rows[rows.length - 1]?.created_at ?? null) : null;
   return { messages, nextCursor };
 }
 

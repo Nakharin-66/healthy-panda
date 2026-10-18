@@ -78,8 +78,14 @@ function Coach() {
       </header>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" disabled={chat.sending || chat.isLoading || !profile?.id} onClick={chat.startNewChat}>
-          <MessageSquarePlus className="size-4" />เริ่มแชทใหม่
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={chat.sending || chat.isLoading || !profile?.id}
+          onClick={chat.startNewChat}
+        >
+          <MessageSquarePlus className="size-4" />
+          เริ่มแชทใหม่
         </Button>
         <ChatHistory profileId={profile?.id} disabled={chat.sending} />
       </div>

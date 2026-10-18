@@ -15,14 +15,19 @@ export function useCoachChat(profileId?: string) {
   const [retryable, setRetryable] = useState(true);
   const [failedText, setFailedText] = useState("");
   const inFlight = useRef(false);
-  const [conversation, setConversation] = useState<{ profileId: string | undefined; since: string | null }>({ profileId: undefined, since: null });
+  const [conversation, setConversation] = useState<{
+    profileId: string | undefined;
+    since: string | null;
+  }>({ profileId: undefined, since: null });
   useEffect(() => {
     let since: string | null = null;
     if (profileId) {
       try {
         const saved = localStorage.getItem(`hp_coach_started_at:${profileId}`);
         if (saved && Number.isFinite(Date.parse(saved))) since = new Date(saved).toISOString();
-      } catch { /* The current page still works when browser storage is unavailable. */ }
+      } catch {
+        /* The current page still works when browser storage is unavailable. */
+      }
     }
     setConversation({ profileId, since });
     setOptimistic([]);
@@ -34,7 +39,11 @@ export function useCoachChat(profileId?: string) {
   const startNewChat = useCallback(() => {
     if (!profileId || inFlight.current) return;
     const timestamp = new Date().toISOString();
-    try { localStorage.setItem(`hp_coach_started_at:${profileId}`, timestamp); } catch { /* Page state is the fallback. */ }
+    try {
+      localStorage.setItem(`hp_coach_started_at:${profileId}`, timestamp);
+    } catch {
+      /* Page state is the fallback. */
+    }
     setConversation({ profileId, since: timestamp });
     setOptimistic([]);
     setSendError("");
@@ -88,7 +97,9 @@ export function useCoachChat(profileId?: string) {
         },
       ]);
       try {
-        const result = await send({ data: { message: text, ...(since ? { conversationStartedAt: since } : {}) } });
+        const result = await send({
+          data: { message: text, ...(since ? { conversationStartedAt: since } : {}) },
+        });
         if (result.error) {
           setSendError(result.error);
           setRetryable(result.retryable ?? false);

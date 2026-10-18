@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CoachInput, COACH_HISTORY_LIMIT, contextText, coachDay, mean, afterConversationStart } from "./coach.rules";
+import {
+  CoachInput,
+  COACH_HISTORY_LIMIT,
+  contextText,
+  coachDay,
+  mean,
+  afterConversationStart,
+} from "./coach.rules";
 import { bkkAddDays, bkkDayStart } from "@/lib/bkk";
 describe("coach rules", () => {
   it("rejects empty messages", () =>
@@ -24,8 +31,13 @@ describe("coach rules", () => {
     expect(afterConversationStart("2026-10-01T00:00:00Z", null)).toBe(true);
   });
   it("accepts the new-chat timestamp but rejects malformed timestamps", () => {
-    expect(CoachInput.parse({ message: "สวัสดี", conversationStartedAt: "2026-10-18T20:20:00.000Z" }).conversationStartedAt).toBe("2026-10-18T20:20:00.000Z");
-    expect(CoachInput.safeParse({ message: "สวัสดี", conversationStartedAt: "not-a-date" }).success).toBe(false);
+    expect(
+      CoachInput.parse({ message: "สวัสดี", conversationStartedAt: "2026-10-18T20:20:00.000Z" })
+        .conversationStartedAt,
+    ).toBe("2026-10-18T20:20:00.000Z");
+    expect(
+      CoachInput.safeParse({ message: "สวัสดี", conversationStartedAt: "not-a-date" }).success,
+    ).toBe(false);
   });
   it("defines deletion as a full Bangkok day with an exclusive next-day boundary", () => {
     expect(bkkDayStart("2026-10-19")).toBe("2026-10-18T17:00:00.000Z");
