@@ -15,7 +15,7 @@ export function useCoachChat(profileId?: string) {
   const [retryable, setRetryable] = useState(true);
   const [failedText, setFailedText] = useState("");
   const inFlight = useRef(false);
-  const [conversation, setConversation] = useState<{ profileId?: string; since: string | null }>({ since: null });
+  const [conversation, setConversation] = useState<{ profileId: string | undefined; since: string | null }>({ profileId: undefined, since: null });
   useEffect(() => {
     let since: string | null = null;
     if (profileId) {

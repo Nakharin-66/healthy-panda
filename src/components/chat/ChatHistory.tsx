@@ -19,7 +19,7 @@ function dayLabel(day: string) {
   });
 }
 
-export function ChatHistory({ profileId, disabled }: { profileId?: string; disabled?: boolean }) {
+export function ChatHistory({ profileId, disabled }: { profileId: string | undefined; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
