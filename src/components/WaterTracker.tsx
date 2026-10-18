@@ -30,7 +30,7 @@ function validAmount(v: string) {
   return Number.isFinite(n) && n > 0 && n <= MAX_ML ? n : null;
 }
 
-export function WaterTracker({ profileId, goal }: { profileId?: string; goal: number }) {
+export function WaterTracker({ profileId, goal }: { profileId: string | undefined; goal: number }) {
   const { data: water } = useTodayWater(profileId);
   const add = useAddWater(profileId);
   const update = useUpdateWater(profileId);
@@ -49,7 +49,7 @@ export function WaterTracker({ profileId, goal }: { profileId?: string; goal: nu
 
   const submitCustom = () => {
     const n = validAmount(custom);
-    if (!n) return toast.error(`กรุณากรอกปริมาณ 1–${MAX_ML} มล.`);
+    if (!n) { toast.error(`กรุณากรอกปริมาณ 1–${MAX_ML} มล.`); return; }
     addMl(n);
     setCustom("");
   };
@@ -64,8 +64,8 @@ export function WaterTracker({ profileId, goal }: { profileId?: string; goal: nu
   const saveEdit = () => {
     if (!editing) return;
     const n = validAmount(editAmount);
-    if (!n) return toast.error(`กรุณากรอกปริมาณ 1–${MAX_ML} มล.`);
-    if (!/^\d{2}:\d{2}$/.test(editTime)) return toast.error("กรุณาระบุเวลาให้ถูกต้อง");
+    if (!n) { toast.error(`กรุณากรอกปริมาณ 1–${MAX_ML} มล.`); return; }
+    if (!/^\d{2}:\d{2}$/.test(editTime)) { toast.error("กรุณาระบุเวลาให้ถูกต้อง"); return; }
     update.mutate(
       { id: editing.id, amount_ml: n, recorded_at: bkkInstant(bkkDate(editing.recorded_at), editTime) },
       { onError: () => toast.error("แก้ไขรายการไม่สำเร็จ กรุณาลองใหม่") },
