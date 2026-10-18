@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
+import { bkkAddDays, bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
 import { DEFAULT_WATER_GOAL_ML, waterInRange } from "./water";
 
 export type Profile = Tables<"profiles">;
@@ -137,7 +137,7 @@ export function useWaterHistory(profileId: string | undefined, days: number, ena
       if (!profileId) return summarizeWater([]);
       const { data, error } = await supabase.from("water_logs")
         .select("id, amount_ml, recorded_at").eq("profile_id", profileId)
-        .gte("recorded_at", bkkDayStart(bkkDate(new Date(new Date(bkkDayStart(today)).getTime() - (days - 1) * 86400000))))
+        .gte("recorded_at", bkkDayStart(bkkAddDays(today, 1 - days)))
         .lte("recorded_at", bkkDayEnd(today)).order("recorded_at", { ascending: false });
       if (error) throw error;
       return summarizeWater(data ?? []);

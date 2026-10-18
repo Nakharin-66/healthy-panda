@@ -141,6 +141,8 @@ function RootComponent() {
     let cancelled = false;
     const initialPath = window.location.pathname;
     const initialSearch = window.location.search;
+    // Supabase must finish its existing callback without LIFF changing the URL.
+    if (initialPath === "/auth") return;
     const isLiffEntry = new URLSearchParams(initialSearch).has("liff.state") || /Line\//i.test(navigator.userAgent);
     const initialTarget = miniappDestination(initialPath, initialSearch);
     if (initialTarget && initialTarget !== "/" && !initialTarget.startsWith("/auth")) {
@@ -160,6 +162,7 @@ function RootComponent() {
         : initialTarget ?? miniappDestination(window.location.pathname, window.location.search);
       if (target && target.split(/[?#]/)[0] !== "/auth") {
         if (target !== "/") window.sessionStorage.setItem(AUTH_RETURN_KEY, target);
+        else window.sessionStorage.removeItem(AUTH_RETURN_KEY);
         if (target !== window.location.pathname + window.location.search) await router.navigate({ to: target, replace: true });
       }
     };
