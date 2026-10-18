@@ -26,7 +26,7 @@ function startOfToday() {
 }
 
 function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  return bkkDate();
 }
 
 /** Returns the current user's profile row, creating it when missing. */

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { FoodLogSource } from "@/types/food";
+import { bkkAddDays, bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
 
 export type FoodItem = Tables<"food_items">;
 export type FoodLogRow = Tables<"food_logs">;
@@ -212,8 +213,8 @@ export function useFoodHistory(profileId: string | undefined, from: string, to: 
         .from("food_logs")
         .select("*")
         .eq("profile_id", profileId!)
-        .gte("recorded_at", `${from}T00:00:00`)
-        .lte("recorded_at", `${to}T23:59:59.999`)
+        .gte("recorded_at", bkkDayStart(from))
+        .lte("recorded_at", bkkDayEnd(to))
         .order("recorded_at", { ascending: false });
       if (error) throw error;
       return groupByDay(data ?? []);
@@ -224,7 +225,7 @@ export function useFoodHistory(profileId: string | undefined, from: string, to: 
 export function groupByDay(logs: FoodLogRow[]): DayGroup[] {
   const byDate = new Map<string, FoodLogRow[]>();
   for (const log of logs) {
-    const key = log.recorded_at.slice(0, 10);
+    const key = bkkDate(log.recorded_at);
     byDate.set(key, [...(byDate.get(key) ?? []), log]);
   }
   return [...byDate.entries()]
@@ -253,16 +254,13 @@ export function groupByDay(logs: FoodLogRow[]): DayGroup[] {
     }));
 }
 
+/** Bangkok calendar date (YYYY-MM-DD). */
 export function isoDate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
+  return bkkDate(d);
 }
 
 export function rangeFor(preset: "today" | "7d" | "30d") {
-  const to = new Date();
-  const from = new Date();
-  if (preset === "7d") from.setDate(from.getDate() - 6);
-  if (preset === "30d") from.setDate(from.getDate() - 29);
-  return { from: isoDate(from), to: isoDate(to) };
+  const to = bkkDate();
+  const back = preset === "7d" ? 6 : preset === "30d" ? 29 : 0;
+  return { from: bkkAddDays(to, -back), to };
 }
