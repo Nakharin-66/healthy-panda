@@ -33,7 +33,10 @@ export const Route = createFileRoute("/coach")({
 });
 
 const SUGGESTIONS = [
-  "วันนี้ควรกินอะไรดี", "สรุปสุขภาพสัปดาห์นี้ให้หน่อย", "ฉันควรออกกำลังกายแค่ไหน", "นอนไม่ค่อยหลับ ทำยังไงดี",
+  "วันนี้ควรกินอะไรดี",
+  "สรุปสุขภาพสัปดาห์นี้ให้หน่อย",
+  "ฉันควรออกกำลังกายแค่ไหน",
+  "นอนไม่ค่อยหลับ ทำยังไงดี",
 ];
 
 function Coach() {
@@ -84,7 +87,9 @@ function Coach() {
         ) : null}
 
         {chat.isLoading ? (
-          <p className="py-6 text-center text-xs font-bold text-muted-foreground">กำลังโหลดบทสนทนา...</p>
+          <p className="py-6 text-center text-xs font-bold text-muted-foreground">
+            กำลังโหลดบทสนทนา...
+          </p>
         ) : null}
 
         {!chat.isLoading && list.length === 0 && !chat.thinking ? (
@@ -100,12 +105,36 @@ function Coach() {
         ))}
 
         {chat.thinking ? <TypingBubble /> : null}
-        {chat.isError ? <div role="alert" className="mt-4 text-sm text-destructive">โหลดประวัติไม่สำเร็จ <Button variant="outline" onClick={() => chat.loadOlder()}>ลองโหลดใหม่</Button></div> : null}
-        {chat.sendError ? <div role="alert" className="mt-4 space-y-2 border-t border-border pt-3 text-sm"><p className="text-destructive">{chat.sendError}</p>{chat.retryable ? <Button variant="outline" disabled={chat.sending} onClick={() => chat.sendMessage(chat.failedText)}>ลองใหม่</Button> : null}</div> : null}
+        {chat.isError ? (
+          <div role="alert" className="mt-4 text-sm text-destructive">
+            โหลดประวัติไม่สำเร็จ{" "}
+            <Button variant="outline" onClick={() => chat.loadOlder()}>
+              ลองโหลดใหม่
+            </Button>
+          </div>
+        ) : null}
+        {chat.sendError ? (
+          <div role="alert" className="mt-4 space-y-2 border-t border-border pt-3 text-sm">
+            <p className="text-destructive">{chat.sendError}</p>
+            {chat.retryable ? (
+              <Button
+                variant="outline"
+                disabled={chat.sending}
+                onClick={() => chat.sendMessage(chat.failedText)}
+              >
+                ลองใหม่
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <div ref={bottomRef} />
       </div>
 
-      <ChatComposer onSend={chat.sendMessage} retryText={chat.failedText} disabled={chat.sending || !profile?.id || chat.isLoading} />
+      <ChatComposer
+        onSend={chat.sendMessage}
+        retryText={chat.failedText}
+        disabled={chat.sending || !profile?.id || chat.isLoading}
+      />
     </AppScreen>
   );
 }
