@@ -29,7 +29,7 @@ export const sendCoachMessage = createServerFn({ method: "POST" })
           .limit(1)
           .maybeSingle();
         if (blocked) return { reply: "", error: blocked.message, retryable: false };
-        const { data: rows, error: historyError } = await supabase
+        let historyQuery = supabase
           .from("ai_conversations")
           .select("role,message,created_at,id")
           .eq("profile_id", profile.id)
@@ -37,6 +37,9 @@ export const sendCoachMessage = createServerFn({ method: "POST" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .limit(COACH_HISTORY_LIMIT);
+        if (data.conversationStartedAt)
+          historyQuery = historyQuery.gt("created_at", data.conversationStartedAt);
+        const { data: rows, error: historyError } = await historyQuery;
         if (historyError) throw historyError;
         const history = (rows ?? [])
           .reverse()
