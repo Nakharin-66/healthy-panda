@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
+import { bkkAddDays, bkkDate, bkkDayEnd, bkkDayStart } from "@/lib/bkk";
+import { DEFAULT_WATER_GOAL_ML, waterInRange } from "./water";
 
 export type Profile = Tables<"profiles">;
 export type DailyGoals = Tables<"daily_goals">;
@@ -14,7 +15,7 @@ export type AiMessage = Tables<"ai_conversations">;
 export const DEFAULT_GOALS = {
   steps_goal: 8000,
   calories_goal: 2100,
-  water_goal_ml: 2500,
+  water_goal_ml: DEFAULT_WATER_GOAL_ML,
   sleep_goal_minutes: 480,
   protein_goal_g: 120,
   fat_goal_g: 65,
@@ -127,26 +128,48 @@ export function useTodayWater(profileId?: string, date = bkkDate()) {
   });
 }
 
+export function useWaterHistory(profileId: string | undefined, days: number, enabled: boolean) {
+  const today = bkkDate();
+  return useQuery({
+    queryKey: ["water_logs", profileId, today, days],
+    enabled: !!profileId && enabled,
+    queryFn: async () => {
+      if (!profileId) return summarizeWater([]);
+      const { data, error } = await supabase.from("water_logs")
+        .select("id, amount_ml, recorded_at").eq("profile_id", profileId)
+        .gte("recorded_at", bkkDayStart(bkkAddDays(today, 1 - days)))
+        .lte("recorded_at", bkkDayEnd(today)).order("recorded_at", { ascending: false });
+      if (error) throw error;
+      return summarizeWater(data ?? []);
+    },
+  });
+}
+
 function useWaterMutation<V>(
   profileId: string | undefined,
   run: (v: V) => Promise<void>,
   apply: (logs: WaterEntry[], v: V) => WaterEntry[],
 ) {
   const qc = useQueryClient();
-  const key = waterKey(profileId);
+  const prefix = ["water_logs", profileId];
   return useMutation({
     mutationFn: async (v: V) => {
       if (!profileId) throw new Error("no profile");
       await run(v);
     },
     onMutate: async (v: V) => {
-      await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<WaterDay>(key);
-      qc.setQueryData<WaterDay>(key, summarizeWater(apply(prev?.logs ?? [], v)));
-      return { prev };
+      await qc.cancelQueries({ queryKey: prefix });
+      const previous = qc.getQueriesData<WaterDay>({ queryKey: prefix });
+      for (const [key, prev] of previous) {
+        if (!prev) continue;
+        const date = typeof key[2] === "string" ? key[2] : bkkDate();
+        const days = typeof key[3] === "number" ? key[3] : 1;
+        qc.setQueryData(key, summarizeWater(apply(prev.logs, v).filter((l) => waterInRange(l.recorded_at, date, days))));
+      }
+      return { previous };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+      for (const [key, previous] of ctx?.previous ?? []) qc.setQueryData(key, previous);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["water_logs"] }),
   });
@@ -156,7 +179,8 @@ export function useAddWater(profileId?: string) {
   return useWaterMutation<number>(
     profileId,
     async (amount_ml) => {
-      const { error } = await supabase.from("water_logs").insert({ profile_id: profileId!, amount_ml });
+      if (!profileId) throw new Error("no profile");
+      const { error } = await supabase.from("water_logs").insert({ profile_id: profileId, amount_ml });
       if (error) throw error;
     },
     (logs, amount_ml) => [
@@ -170,16 +194,16 @@ export function useUpdateWater(profileId?: string) {
   return useWaterMutation<{ id: string; amount_ml: number; recorded_at: string }>(
     profileId,
     async ({ id, amount_ml, recorded_at }) => {
+      if (!profileId) throw new Error("no profile");
       const { error } = await supabase
         .from("water_logs")
         .update({ amount_ml, recorded_at })
-        .eq("id", id);
+        .eq("id", id).eq("profile_id", profileId).select("id").single();
       if (error) throw error;
     },
     (logs, v) =>
       logs
-        .map((l) => (l.id === v.id ? { ...l, ...v } : l))
-        .filter((l) => bkkDate(l.recorded_at) === bkkDate()),
+        .map((l) => (l.id === v.id ? { ...l, ...v } : l)),
   );
 }
 
@@ -187,7 +211,8 @@ export function useDeleteWater(profileId?: string) {
   return useWaterMutation<string>(
     profileId,
     async (id) => {
-      const { error } = await supabase.from("water_logs").delete().eq("id", id);
+      if (!profileId) throw new Error("no profile");
+      const { error } = await supabase.from("water_logs").delete().eq("id", id).eq("profile_id", profileId).select("id").single();
       if (error) throw error;
     },
     (logs, id) => logs.filter((l) => l.id !== id),

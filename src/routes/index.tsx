@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import mascot from "@/assets/panda-mascot.png";
 import { useAuth } from "@/hooks/useAuth";
 import { oauthErrorMessage, readGuest, signInWithGoogle, signInWithLine } from "@/lib/guest";
+import { storedDestination } from "@/lib/miniapp";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,13 +33,14 @@ function Welcome() {
 
   useEffect(() => {
     if (loading) return;
-    if (signedIn || readGuest()?.completed) navigate({ to: "/dashboard", replace: true });
+    if (new URLSearchParams(window.location.search).has("liff.state")) return;
+    if (signedIn || readGuest()?.completed) navigate({ to: storedDestination(), replace: true });
   }, [loading, signedIn, navigate]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
     try {
-      await signInWithGoogle("/dashboard");
+      await signInWithGoogle(storedDestination());
     } catch (err) {
       setSigningIn(false);
       const m = err instanceof Error ? err.message : "เข้าสู่ระบบด้วย Google ไม่สำเร็จ";
@@ -50,7 +52,7 @@ function Welcome() {
   const handleLineSignIn = async () => {
     setLineBusy(true);
     try {
-      await signInWithLine("/dashboard");
+      await signInWithLine(storedDestination());
     } catch (err) {
       setLineBusy(false);
       toast.error(oauthErrorMessage(null, err instanceof Error ? err.message : null));

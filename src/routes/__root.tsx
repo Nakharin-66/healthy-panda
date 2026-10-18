@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { closeAuthModal, syncGuestToProfile } from "../lib/guest";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useThemeSync } from "../lib/theme";
+import { AUTH_RETURN_KEY, MINIAPP_LIFF_ID, miniappDestination } from "../lib/miniapp";
 
 function NotFoundComponent() {
   return (
@@ -135,6 +136,39 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useThemeSync();
   const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    const initialPath = window.location.pathname;
+    const initialSearch = window.location.search;
+    // Supabase must finish its existing callback without LIFF changing the URL.
+    if (initialPath === "/auth") return;
+    const isLiffEntry = new URLSearchParams(initialSearch).has("liff.state") || /Line\//i.test(navigator.userAgent);
+    const initialTarget = miniappDestination(initialPath, initialSearch);
+    if (initialTarget && initialTarget !== "/" && !initialTarget.startsWith("/auth")) {
+      window.sessionStorage.setItem(AUTH_RETURN_KEY, initialTarget);
+    }
+    if (!isLiffEntry) return;
+    const start = async () => {
+      try {
+        const { default: liff } = await import("@line/liff");
+        await liff.init({ liffId: MINIAPP_LIFF_ID });
+      } catch (error) {
+        console.error("LINE initialization failed", error instanceof Error ? error.message : "unknown");
+      }
+      if (cancelled) return;
+      const target = new URLSearchParams(window.location.search).has("liff.state")
+        ? miniappDestination(window.location.pathname, window.location.search)
+        : initialTarget ?? miniappDestination(window.location.pathname, window.location.search);
+      if (target && target.split(/[?#]/)[0] !== "/auth") {
+        if (target !== "/") window.sessionStorage.setItem(AUTH_RETURN_KEY, target);
+        else window.sessionStorage.removeItem(AUTH_RETURN_KEY);
+        if (target !== window.location.pathname + window.location.search) await router.navigate({ to: target, replace: true });
+      }
+    };
+    void start();
+    return () => { cancelled = true; };
+  }, [router]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {

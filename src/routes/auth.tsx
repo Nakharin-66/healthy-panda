@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import mascot from "@/assets/panda-avatar.png";
 import { GoogleButton, LineButton } from "@/components/AuthModal";
 import { oauthErrorMessage, syncGuestToProfile, takeReturnTo } from "@/lib/guest";
+import { storedDestination } from "@/lib/miniapp";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -93,7 +94,7 @@ function AuthScreen() {
           )}
         </div>
         <button
-          onClick={() => navigate({ to: "/dashboard" })}
+          onClick={() => navigate({ to: storedDestination() })}
           className="mt-4 text-xs font-bold text-primary"
         >
           ใช้งานต่อแบบ Guest

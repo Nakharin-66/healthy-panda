@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AUTH_RETURN_KEY, storedDestination, validAppPath } from "./miniapp";
+import { DEFAULT_WATER_GOAL_ML } from "./water";
 
 export type PrimaryGoal = "weight" | "exercise" | "daily_activity" | "nutrition" | "overall";
 export type GuestActivity = "sedentary" | "light" | "moderate" | "active";
@@ -19,7 +21,7 @@ export type GuestOnboarding = {
 };
 
 const KEY = "hp_guest_onboarding";
-const RETURN_KEY = "hp_auth_return_to";
+const RETURN_KEY = AUTH_RETURN_KEY;
 
 export const GOAL_LABELS: Record<PrimaryGoal, string> = {
   weight: "ควบคุมน้ำหนัก",
@@ -59,10 +61,9 @@ export function starterGoals(d: Pick<GuestOnboarding, "weight_kg" | "activity_le
   const baseSteps = { sedentary: 6000, light: 7500, moderate: 9000, active: 10000 }[d.activity_level];
   const bump = d.primary_goal === "weight" || d.primary_goal === "daily_activity" ? 1000 : 0;
   const steps = Math.min(12000, baseSteps + bump);
-  const water = d.weight_kg ? Math.round((d.weight_kg * 33) / 100) * 100 : 2000;
   const baseEx = { sedentary: 90, light: 120, moderate: 150, active: 200 }[d.activity_level];
   const exercise = d.primary_goal === "exercise" || d.primary_goal === "weight" ? Math.max(150, baseEx) : baseEx;
-  return { steps, water_ml: Math.min(4000, Math.max(1500, water)), exercise_min_week: exercise };
+  return { steps, water_ml: DEFAULT_WATER_GOAL_ML, exercise_min_week: exercise };
 }
 
 /* ---------- Auth modal store ---------- */
@@ -90,14 +91,14 @@ export function useAuthModalOpen() {
 
 /* ---------- Google OAuth (same-tab redirect) ---------- */
 function safePath(p: string | null | undefined) {
-  if (!p || !p.startsWith("/") || p.startsWith("//") || p.startsWith("/auth")) return "/dashboard";
-  return p;
+  const path = validAppPath(p);
+  return path && path.split(/[?#]/)[0] !== "/auth" ? path : "/dashboard";
 }
 
 function rememberReturnTo(returnTo?: string) {
   window.sessionStorage.setItem(
     RETURN_KEY,
-    safePath(returnTo ?? window.location.pathname + window.location.search),
+    safePath(returnTo ?? storedDestination(window.location.pathname + window.location.search)),
   );
 }
 

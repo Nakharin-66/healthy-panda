@@ -16,3 +16,5 @@
 - Coach new-chat boundaries are profile-scoped browser timestamps passed to the authenticated history query; daily history deletion uses the existing signed-in Supabase client and RLS, preserving system denial rows.
 - Coach uses AI Elements message/composer primitives with a final-result server-function contract; upstream generation is streamed and consumed server-side because this feature returns a reply DTO.
 - Day boundaries use Asia/Bangkok via src/lib/bkk.ts; why: UTC slicing put early-morning Thai entries on the previous day.
+- Water day and range queries share profile-scoped optimistic cache updates; why: edits from history must update today's total only when the entry belongs to today.
+- LINE MINI App startup initializes a dynamically imported LIFF SDK in a browser effect and validates destinations against content routes before preserving them through the existing OAuth return state; why: LINE encodes deep links in liff.state rather than the app endpoint pathname.

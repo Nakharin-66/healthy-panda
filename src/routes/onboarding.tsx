@@ -10,6 +10,7 @@ import {
   type GuestSex,
   type PrimaryGoal,
 } from "@/lib/guest";
+import { storedDestination } from "@/lib/miniapp";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -74,19 +75,20 @@ function Onboarding() {
   const rec = goal && activity ? starterGoals({ weight_kg: w, activity_level: activity, primary_goal: goal }) : null;
 
   const finish = () => {
+    if (!goal || !activity) return;
     writeGuest({
       nickname: nickname.trim(),
       weight_kg: w,
       height_cm: h,
       age: a,
       sex,
-      primary_goal: goal!,
+      primary_goal: goal,
       target_weight_kg: goal === "weight" ? t : null,
-      activity_level: activity!,
+      activity_level: activity,
       completed: true,
       saved_at: new Date().toISOString(),
     });
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: storedDestination(), replace: true });
   };
 
   return (
