@@ -47,14 +47,12 @@ export const sendCoachMessage = createServerFn({ method: "POST" })
           answer = await generateCoachReply({ prompt: data.message, history, userContext });
         } catch (error) {
           if (error instanceof CoachGatewayError && error.denied) {
-            const { error: saveError } = await supabase
-              .from("ai_conversations")
-              .insert({
-                profile_id: profile.id,
-                role: "system",
-                message: error.message,
-                metadata: { coach_access_denied: true },
-              });
+            const { error: saveError } = await supabase.from("ai_conversations").insert({
+              profile_id: profile.id,
+              role: "system",
+              message: error.message,
+              metadata: { coach_access_denied: true },
+            });
             if (saveError) console.error("[coach] unable to persist denied state", saveError.code);
           }
           throw error;
