@@ -222,12 +222,15 @@ function ScanPage() {
           source_reference: result?.source ?? NUTRITION_SOURCE_LABEL,
           ai_confidence: r.confidence,
           image_url: null,
+          recorded_at: new Date().toISOString(),
         })),
       );
       toast.success("บันทึกอาหารแล้ว");
       navigate({ to: "/food/history" });
-    } catch {
-      toast.error("บันทึกไม่สำเร็จ");
+    } catch (err) {
+      console.error("[scan] save failed", err);
+      const m = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      toast.error(`บันทึกไม่สำเร็จ${m ? `: ${m}` : ""}`);
     }
   };
 
