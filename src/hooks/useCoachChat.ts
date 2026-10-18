@@ -128,6 +128,7 @@ export function useCoachChat(profileId?: string) {
   return {
     messages,
     startNewChat,
+    composerKey: since ?? "original",
     isLoading: !ready || query.isLoading,
     isError: query.isError,
     error: query.error,

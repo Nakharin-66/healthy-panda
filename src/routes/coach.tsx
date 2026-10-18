@@ -11,6 +11,8 @@ import { useProfile } from "@/lib/db";
 import { isGroupedWithPrevious } from "@/lib/chat/chat.utils";
 import avatar from "@/assets/panda-avatar.png";
 import { Button } from "@/components/ui/button";
+import { MessageSquarePlus } from "lucide-react";
+import { ChatHistory } from "@/components/chat/ChatHistory";
 
 export const Route = createFileRoute("/coach")({
   head: () => ({
@@ -37,6 +39,7 @@ const SUGGESTIONS = [
   "สรุปสุขภาพสัปดาห์นี้ให้หน่อย",
   "ฉันควรออกกำลังกายแค่ไหน",
   "นอนไม่ค่อยหลับ ทำยังไงดี",
+  "ดื่มน้ำวันนี้พอหรือยัง",
 ];
 
 function Coach() {
@@ -74,6 +77,13 @@ function Coach() {
         </div>
       </header>
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" disabled={chat.sending || chat.isLoading || !profile?.id} onClick={chat.startNewChat}>
+          <MessageSquarePlus className="size-4" />เริ่มแชทใหม่
+        </Button>
+        <ChatHistory profileId={profile?.id} disabled={chat.sending} />
+      </div>
+
       <div className="pb-44">
         {chat.hasOlder ? (
           <Button
@@ -108,7 +118,7 @@ function Coach() {
         {chat.isError ? (
           <div role="alert" className="mt-4 text-sm text-destructive">
             โหลดประวัติไม่สำเร็จ{" "}
-            <Button variant="outline" onClick={() => chat.loadOlder()}>
+            <Button variant="outline" onClick={() => chat.reload()}>
               ลองโหลดใหม่
             </Button>
           </div>
@@ -131,6 +141,7 @@ function Coach() {
       </div>
 
       <ChatComposer
+        key={`${profile?.id ?? "guest"}-${chat.composerKey}`}
         onSend={chat.sendMessage}
         retryText={chat.failedText}
         disabled={chat.sending || !profile?.id || chat.isLoading}

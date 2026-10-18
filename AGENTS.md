@@ -13,5 +13,6 @@
 - Sign-in is Google-only via same-tab `signInWithOAuth` redirect to /auth; why: no popups/new tabs, one flow for login and signup.
 
 - Coach chat uses a single database conversation and an authenticated server function; history and health context are loaded server-side to prevent client-supplied health records or cross-user history.
+- Coach new-chat boundaries are profile-scoped browser timestamps passed to the authenticated history query; daily history deletion uses the existing signed-in Supabase client and RLS, preserving system denial rows.
 - Coach uses AI Elements message/composer primitives with a final-result server-function contract; upstream generation is streamed and consumed server-side because this feature returns a reply DTO.
 - Day boundaries use Asia/Bangkok via src/lib/bkk.ts; why: UTC slicing put early-morning Thai entries on the previous day.
