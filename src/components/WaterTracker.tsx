@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { GlassWater, Plus, Pencil, Trash2 } from "lucide-react";
+import { GlassWater, Plus, Pencil, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
-import { useAddWater, useDeleteWater, useTodayWater, useUpdateWater, type WaterEntry } from "@/lib/db";
+import { useAddWater, useDeleteWater, useTodayWater, useWaterHistory, useUpdateWater, type WaterEntry } from "@/lib/db";
 import { bkkDate, bkkInstant, bkkTime } from "@/lib/bkk";
+import { waterDayLabel, waterSegmentFill } from "@/lib/water";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -40,9 +41,16 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
   const [editAmount, setEditAmount] = useState("");
   const [editTime, setEditTime] = useState("");
   const [deleting, setDeleting] = useState<WaterEntry | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyDays, setHistoryDays] = useState(7);
+  const history = useWaterHistory(profileId, historyDays, historyOpen);
 
   const waterMl = water?.total ?? 0;
-  const logs = water?.logs ?? [];
+  const groups = new Map<string, WaterEntry[]>();
+  for (const entry of history.data?.logs ?? []) {
+    const day = bkkDate(entry.recorded_at);
+    groups.set(day, [...(groups.get(day) ?? []), entry]);
+  }
 
   const addMl = (n: number) =>
     add.mutate(n, { onError: (e) => toast.error(errText(e)) });
@@ -65,7 +73,7 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
     if (!editing) return;
     const n = validAmount(editAmount);
     if (!n) { toast.error(`กรุณากรอกปริมาณ 1–${MAX_ML} มล.`); return; }
-    if (!/^\d{2}:\d{2}$/.test(editTime)) { toast.error("กรุณาระบุเวลาให้ถูกต้อง"); return; }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(editTime)) { toast.error("กรุณาระบุเวลาให้ถูกต้อง"); return; }
     update.mutate(
       { id: editing.id, amount_ml: n, recorded_at: bkkInstant(bkkDate(editing.recorded_at), editTime) },
       { onError: () => toast.error("แก้ไขรายการไม่สำเร็จ กรุณาลองใหม่") },
@@ -85,28 +93,31 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
             {waterMl} / {goal} ml
           </p>
         </div>
+        <Button type="button" variant="ghost" size="icon" className="shrink-0 rounded-full text-muted-foreground" aria-label="ประวัติการดื่มน้ำ" title="ประวัติการดื่มน้ำ" onClick={() => setHistoryOpen(true)}>
+          <History className="size-5" />
+        </Button>
       </div>
       <div className="mt-3 flex gap-1.5">
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
-            className={`h-8 flex-1 rounded-lg border-2 border-info/25 ${
-              i < Math.round((waterMl / (goal || 1)) * 10) ? "bg-info/70" : "bg-info-soft"
-            }`}
-          />
+             className="relative h-8 flex-1 overflow-hidden rounded-lg border-2 border-info/25 bg-info-soft"
+          >
+            <div className="absolute inset-y-0 left-0 bg-info/70" style={{ width: `${waterSegmentFill(waterMl, goal, i) * 100}%` }} />
+          </div>
         ))}
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {QUICK.map((n) => (
-          <button
+          <Button
             key={n}
             onClick={() => addMl(n)}
             disabled={!profileId}
             className="flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95 disabled:opacity-60"
           >
             <Plus className="size-3.5" /> {n}ml
-          </button>
+          </Button>
         ))}
       </div>
       <form
@@ -127,47 +138,44 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
           className="h-9 rounded-full text-xs"
           aria-label="ปริมาณน้ำ (มล.)"
         />
-        <button
+        <Button
           type="submit"
           disabled={!profileId || !custom}
           className="shrink-0 rounded-full bg-primary-soft px-4 text-xs font-extrabold text-primary active:scale-95 disabled:opacity-60"
         >
           เพิ่ม
-        </button>
+        </Button>
       </form>
 
-      <div className="mt-3">
-        <p className="mb-1 text-[11px] font-extrabold text-muted-foreground">ประวัติวันนี้</p>
-        {logs.length === 0 ? (
-          <p className="text-[11px] font-semibold text-muted-foreground">ยังไม่มีการบันทึกการดื่มน้ำวันนี้</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {logs.map((l) => (
-              <li key={l.id} className="flex items-center gap-2 py-1.5">
-                <button
-                  type="button"
-                  onClick={() => openEdit(l)}
-                  className="flex flex-1 items-center justify-between text-left text-xs font-bold"
-                  aria-label={`แก้ไข ${l.amount_ml} มล. เวลา ${bkkTime(l.recorded_at)}`}
-                >
-                  <span>{l.amount_ml} มล.</span>
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    {bkkTime(l.recorded_at)} น. <Pencil className="size-3" />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => !l.id.startsWith("local-") && setDeleting(l)}
-                  className="grid size-7 place-items-center rounded-full text-destructive"
-                  aria-label="ลบรายการ"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <p className="mt-3 text-[11px] font-semibold text-muted-foreground">ดื่มน้ำวันนี้ {water?.count ?? 0} ครั้ง</p>
+
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-h-[85dvh]" aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>ประวัติการดื่มน้ำ</DialogTitle></DialogHeader>
+          <div className="max-h-[60dvh] overflow-y-auto">
+            {history.isLoading ? <p className="text-xs text-muted-foreground">กำลังโหลดประวัติ...</p>
+              : history.isError ? <div className="space-y-2"><p className="text-xs text-destructive">โหลดประวัติไม่สำเร็จ กรุณาลองใหม่</p><Button variant="outline" size="sm" onClick={() => { toast.error("โหลดประวัติไม่สำเร็จ กรุณาลองใหม่"); void history.refetch(); }}>ลองใหม่</Button></div>
+              : groups.size === 0 ? <p className="text-xs text-muted-foreground">ยังไม่มีการบันทึกการดื่มน้ำ</p>
+              : [...groups].map(([day, entries]) => (
+                <div key={day} className="mb-3">
+                  <p className="mb-1 text-[11px] font-extrabold text-muted-foreground">{waterDayLabel(day)}</p>
+                  <ul className="divide-y divide-border">
+                    {entries.map((l) => (
+                      <li key={l.id} className="flex items-center gap-2 py-1.5">
+                        <Button variant="ghost" type="button" disabled={l.id.startsWith("local-")} onClick={() => openEdit(l)} className="h-auto flex-1 justify-between px-0 text-left text-xs font-bold" aria-label={`แก้ไข ${l.amount_ml} มล. เวลา ${bkkTime(l.recorded_at)}`}>
+                          <span>{l.amount_ml} มล.</span>
+                          <span className="flex items-center gap-1 text-muted-foreground">{bkkTime(l.recorded_at)} น. <Pencil className="size-3" /></span>
+                        </Button>
+                        <Button variant="ghost" size="icon" type="button" disabled={l.id.startsWith("local-")} onClick={() => setDeleting(l)} className="size-7 rounded-full text-destructive" aria-label="ลบรายการ"><Trash2 className="size-3.5" /></Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+          </div>
+          <Button variant="outline" disabled={history.isFetching} onClick={() => setHistoryDays((days) => days + 7)}>ดูย้อนหลังเพิ่ม 7 วัน</Button>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
