@@ -10,6 +10,7 @@ import { useCoachChat } from "@/hooks/useCoachChat";
 import { useProfile } from "@/lib/db";
 import { isGroupedWithPrevious } from "@/lib/chat/chat.utils";
 import avatar from "@/assets/panda-avatar.png";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/coach")({
   head: () => ({
@@ -32,11 +33,10 @@ export const Route = createFileRoute("/coach")({
 });
 
 const SUGGESTIONS = [
-  "วันนี้ควรกินอะไรดี?",
-  "วิเคราะห์โภชนาการวันนี้",
-  "วิเคราะห์การออกกำลังกายวันนี้",
-  "ลดน้ำหนักยังไงให้ยั่งยืน",
-  "ฉันควรดื่มน้ำเพิ่มไหม?",
+  "วันนี้ควรกินอะไรดี",
+  "สรุปสุขภาพสัปดาห์นี้ให้หน่อย",
+  "ฉันควรออกกำลังกายแค่ไหน",
+  "นอนไม่ค่อยหลับ ทำยังไงดี",
 ];
 
 function Coach() {
@@ -47,7 +47,7 @@ function Coach() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [chat.messages.length, chat.thinking]);
+  }, [chat.messages.length, chat.thinking, chat.sendError]);
 
   if (!loading && !signedIn) {
     return (
@@ -70,31 +70,33 @@ function Coach() {
         </div>
         <div>
           <h1 className="text-lg font-extrabold leading-tight">Panda Coach</h1>
-          <p className="text-xs font-bold text-success">ออนไลน์ • ตอบทันที</p>
+          <p className="text-xs font-bold text-success">โค้ชสุขภาพ AI</p>
         </div>
       </header>
 
-      <div className="pb-28">
+      <div className="pb-44">
         {chat.hasOlder ? (
-          <button
+          <Button
             type="button"
             onClick={() => chat.loadOlder()}
             disabled={chat.isLoadingOlder}
             className="mx-auto mb-2 block rounded-full border border-border px-4 py-1.5 text-xs font-extrabold text-muted-foreground disabled:opacity-50"
           >
             {chat.isLoadingOlder ? "กำลังโหลด..." : "โหลดข้อความก่อนหน้า"}
-          </button>
+          </Button>
         ) : null}
 
         {chat.isLoading ? (
-          <p className="py-6 text-center text-xs font-bold text-muted-foreground">กำลังโหลดบทสนทนา...</p>
+          <p className="py-6 text-center text-xs font-bold text-muted-foreground">
+            กำลังโหลดบทสนทนา...
+          </p>
         ) : null}
 
         {!chat.isLoading && list.length === 0 && !chat.thinking ? (
           <ChatEmptyState
             suggestions={SUGGESTIONS}
             onPick={chat.sendMessage}
-            disabled={chat.sending}
+            disabled={chat.sending || !profile?.id || chat.isLoading}
           />
         ) : null}
 
@@ -103,10 +105,36 @@ function Coach() {
         ))}
 
         {chat.thinking ? <TypingBubble /> : null}
+        {chat.isError ? (
+          <div role="alert" className="mt-4 text-sm text-destructive">
+            โหลดประวัติไม่สำเร็จ{" "}
+            <Button variant="outline" onClick={() => chat.loadOlder()}>
+              ลองโหลดใหม่
+            </Button>
+          </div>
+        ) : null}
+        {chat.sendError ? (
+          <div role="alert" className="mt-4 space-y-2 border-t border-border pt-3 text-sm">
+            <p className="text-destructive">{chat.sendError}</p>
+            {chat.retryable ? (
+              <Button
+                variant="outline"
+                disabled={chat.sending}
+                onClick={() => chat.sendMessage(chat.failedText)}
+              >
+                ลองใหม่
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <div ref={bottomRef} />
       </div>
 
-      <ChatComposer suggestions={SUGGESTIONS} onSend={chat.sendMessage} disabled={chat.sending} />
+      <ChatComposer
+        onSend={chat.sendMessage}
+        retryText={chat.failedText}
+        disabled={chat.sending || !profile?.id || chat.isLoading}
+      />
     </AppScreen>
   );
 }
