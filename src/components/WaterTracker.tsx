@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GlassWater, Plus, Pencil, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 import { useAddWater, useDeleteWater, useTodayWater, useWaterHistory, useUpdateWater, type WaterEntry } from "@/lib/db";
@@ -44,6 +44,9 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyDays, setHistoryDays] = useState(7);
   const history = useWaterHistory(profileId, historyDays, historyOpen);
+  useEffect(() => {
+    if (historyOpen && history.isError) toast.error("โหลดประวัติการดื่มน้ำไม่สำเร็จ กรุณาลองใหม่");
+  }, [historyOpen, history.isError]);
 
   const waterMl = water?.total ?? 0;
   const groups = new Map<string, WaterEntry[]>();
@@ -114,7 +117,7 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
             key={n}
             onClick={() => addMl(n)}
             disabled={!profileId}
-            className="flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95 disabled:opacity-60"
+            className="h-auto flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground shadow-[var(--shadow-glow)] active:scale-95 disabled:opacity-60"
           >
             <Plus className="size-3.5" /> {n}ml
           </Button>
@@ -154,7 +157,7 @@ export function WaterTracker({ profileId, goal }: { profileId: string | undefine
           <DialogHeader><DialogTitle>ประวัติการดื่มน้ำ</DialogTitle></DialogHeader>
           <div className="max-h-[60dvh] overflow-y-auto">
             {history.isLoading ? <p className="text-xs text-muted-foreground">กำลังโหลดประวัติ...</p>
-              : history.isError ? <div className="space-y-2"><p className="text-xs text-destructive">โหลดประวัติไม่สำเร็จ กรุณาลองใหม่</p><Button variant="outline" size="sm" onClick={() => { toast.error("โหลดประวัติไม่สำเร็จ กรุณาลองใหม่"); void history.refetch(); }}>ลองใหม่</Button></div>
+              : history.isError ? <div className="space-y-2"><p className="text-xs text-destructive">โหลดประวัติไม่สำเร็จ กรุณาลองใหม่</p><Button variant="outline" size="sm" onClick={() => { void history.refetch(); }}>ลองใหม่</Button></div>
               : groups.size === 0 ? <p className="text-xs text-muted-foreground">ยังไม่มีการบันทึกการดื่มน้ำ</p>
               : [...groups].map(([day, entries]) => (
                 <div key={day} className="mb-3">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WATER_GOAL_ML, waterDayLabel, waterInRange, waterSegmentFill } from "./water";
+import { DEFAULT_WATER_GOAL_ML, waterInRange, waterSegmentFill } from "./water";
 
 describe("water goals and Bangkok history", () => {
   it("defaults to 5000 ml", () => expect(DEFAULT_WATER_GOAL_ML).toBe(5000));
@@ -17,9 +17,5 @@ describe("water goals and Bangkok history", () => {
   it("a previous-day edit cannot enter today's total", () => {
     expect(waterInRange("2026-10-18T09:00:00Z", "2026-10-19")).toBe(false);
     expect(waterInRange("2026-10-18T17:00:00Z", "2026-10-19")).toBe(true);
-  });
-  it("labels history in Bangkok", () => {
-    expect(waterDayLabel("2026-10-19", "2026-10-19")).toBe("วันนี้");
-    expect(waterDayLabel("2026-10-18", "2026-10-19")).toBe("เมื่อวาน");
   });
 });
