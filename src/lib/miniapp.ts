@@ -9,7 +9,7 @@ export const AUTH_RETURN_KEY = "hp_auth_return_to";
 
 export function validAppPath(value: string | null | undefined): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return null;
-  const path = value.split(/[?#]/)[0].replace(/\/$/, "") || "/";
+  const path = (value.split(/[?#]/)[0] ?? "/").replace(/\/$/, "") || "/";
   if (/%2f|%5c|%2e/i.test(path) || path.split("/").some((part) => part === "." || part === "..")) return null;
   const matches = CONTENT_ROUTES.some((route) => {
     const parts = route.split("/");
