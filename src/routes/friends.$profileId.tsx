@@ -112,7 +112,7 @@ function FriendProfilePage() {
         </p>
       ) : isError ? (
         <p className="card-soft p-6 text-center text-xs font-bold text-muted-foreground">
-          ไม่สามารถโหลดข้อมูลได้
+          ไม่สามารถโหลดโปรไฟล์ได้
         </p>
       ) : !data ? (
         <p className="card-soft p-6 text-center text-xs font-bold text-muted-foreground">
@@ -121,11 +121,13 @@ function FriendProfilePage() {
       ) : (
         <>
           <section className="card-soft mb-4 flex flex-col items-center p-5 text-center">
-            <PersonAvatar
-              pictureUrl={data.picture_url}
-              name={data.display_name}
-              className="size-20"
-            />
+            {data.picture_url ? (
+              <PersonAvatar pictureUrl={data.picture_url} name={data.display_name} className="size-20" />
+            ) : (
+              <span className="grid size-20 place-items-center rounded-full bg-primary-soft text-2xl font-black text-primary ring-2 ring-primary/25">
+                {(data.display_name ?? "?").trim().slice(0, 1).toUpperCase() || "?"}
+              </span>
+            )}
             <p className="mt-3 text-lg font-extrabold">{data.display_name}</p>
             <p className="text-[11px] font-bold text-muted-foreground">{data.friend_code}</p>
             <p className="mt-1 text-[11px] font-bold text-primary">

@@ -153,6 +153,10 @@ function RootComponent() {
       try {
         const { default: liff } = await import("@line/liff");
         await liff.init({ liffId: MINIAPP_LIFF_ID });
+        const { syncLineProfile } = await import("../lib/lineProfile");
+        syncLineProfile(liff)
+          .then((saved) => { if (saved) void queryClient.invalidateQueries({ queryKey: ["profile"] }); })
+          .catch((e) => console.error("LINE profile sync failed", e instanceof Error ? e.message : "unknown"));
       } catch (error) {
         console.error("LINE initialization failed", error instanceof Error ? error.message : "unknown");
       }
@@ -168,7 +172,7 @@ function RootComponent() {
     };
     void start();
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, queryClient]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
